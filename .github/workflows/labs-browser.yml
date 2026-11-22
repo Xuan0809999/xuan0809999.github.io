@@ -1,4 +1,4 @@
-name: Live portfolio layout and interaction checks
+name: Live portfolio and eight interactive projects
 on:
   push:
     branches: ['qa/labs-29873564']
@@ -14,10 +14,11 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m venv "$RUNNER_TEMP/lab-browser"
-          "$RUNNER_TEMP/lab-browser/bin/pip" -q install selenium
+          "$RUNNER_TEMP/lab-browser/bin/pip" -q install selenium pillow
           export DRIVER="$(command -v chromedriver)"
           "$RUNNER_TEMP/lab-browser/bin/python" - <<'PYTHON'
-          import os, time
+          import os, time, tempfile, pathlib, struct, base64, io
+          from PIL import Image
           from selenium import webdriver
           from selenium.webdriver.chrome.options import Options
           from selenium.webdriver.chrome.service import Service
@@ -39,7 +40,7 @@ jobs:
               assert find('h1').text and d.execute_script('return document.documentElement.scrollWidth<=innerWidth')
           try:
               d.get(home)
-              w.until(lambda _:len(d.find_elements(By.CSS_SELECTOR,'.experiment-card'))==6)
+              w.until(lambda _:len(d.find_elements(By.CSS_SELECTOR,'.experiment-card'))==8)
               for width in (375, 1280):
                   d.set_window_size(width, 900)
                   assert d.execute_script("return document.documentElement.scrollWidth<=window.innerWidth")
@@ -47,14 +48,49 @@ jobs:
                   for cover in d.find_elements(By.CSS_SELECTOR,'.project-print'):
                       d.execute_script("arguments[0].scrollIntoView({behavior:'instant',block:'center'})",cover)
                       w.until(lambda _:d.execute_script('return arguments[0].naturalWidth>0', cover))
-                  assert len(d.find_elements(By.CSS_SELECTOR,'.project-print'))==6
-              print('PASS responsive homepage and six illustrations', flush=True)
+                  assert len(d.find_elements(By.CSS_SELECTOR,'.project-print'))==8
+              print('PASS responsive homepage and eight illustrations', flush=True)
               click('.try-time');click('#secondPad');click('#secondPad')
               assert '2 / 10' in find('#secondRound').text
               click('.course-link')
               assert find('#notes-title').text=='Field notes' and find('.studio-brand').is_displayed()
               d.get(home)
-              click('a.experiment-card')
+              click('a[data-art="signals"]')
+              for round_index in range(6):
+                  choices=d.find_elements(By.CSS_SELECTOR,'#options button')
+                  assert len(choices)==3 and choices[0].is_enabled()
+                  click('#options button')
+                  assert len(d.find_elements(By.CSS_SELECTOR,'#clues li'))==2
+                  assert len(d.find_elements(By.CSS_SELECTOR,'#options button:disabled'))==3
+                  click('#nextRound')
+              assert find('#recap').is_displayed() and len(d.find_elements(By.CSS_SELECTOR,'#recapList li'))==6
+              click('#nextRound')
+              assert not find('#recap').is_displayed() and find('#options button').is_enabled()
+              print('PASS six data mysteries, annotated reveals and replay',flush=True)
+              page('island')
+              def postcard():
+                  return d.execute_script("return document.getElementById('postcard').toDataURL('image/png')")
+              def plant(s):
+                  field=find('#islandName')
+                  field.clear()
+                  field.send_keys(s)
+                  click('#nameForm button')
+              first=postcard()
+              plant('琥珀')
+              assert postcard()!=first
+              plant('Mingxuan')
+              assert postcard()==first
+              with tempfile.TemporaryDirectory() as folder:
+                  d.execute_cdp_cmd('Browser.setDownloadBehavior',{'behavior':'allow','downloadPath':folder})
+                  click('#saveCard')
+                  png=w.until(lambda _: next(iter(pathlib.Path(folder).glob('*.png')),None))
+                  data=png.read_bytes()
+                  assert data[:8]==bytes.fromhex('89504e470d0a1a0a') and struct.unpack('>II',data[16:24])==(1440,960)
+                  assert png.name=='island-Mingxuan.png'
+                  assert Image.open(png).convert('RGBA').tobytes()==Image.open(io.BytesIO(base64.b64decode(first.split(',')[1]))).convert('RGBA').tobytes()
+              print('PASS name reproducibility, different island and downloaded PNG',flush=True)
+              d.get(home)
+              click('a[data-art="typing"]')
               click('#language option[value="en"]')
               text=find('#sample').text
               find('#pad').send_keys(text)
