@@ -64,6 +64,10 @@ vec3 duskSky(vec3 ray){
   float wisps=texture2D(grain,coord*.15).r*.65+texture2D(grain,coord*.32).r*.35;
   float bands=exp(-pow((altitude-.090)/.050,2.))+ .58*exp(-pow((altitude-.21)/.038,2.));
   col=mix(col,vec3(.42,.318,.424),smoothstep(.43,.68,wisps)*bands*.30);
+  vec3 moonDir=normalize(vec3(-.857,.133,-.498));
+  float moon=1.-smoothstep(.0080,.0098,distance(ray,moonDir));
+  float shadow=smoothstep(.0076,.0096,distance(ray,normalize(moonDir+vec3(.003,.0032,-.006))));
+  col+=vec3(.53,.50,.416)*moon*shadow;
   return col;
 }`;
   const lightSpace='vec3 lightCoord(vec3 p){return vec3(dot(p,vec3(-.412,0.,.911))/91.,dot(p,vec3(.298,.945,.135))/89.,-dot(p,vec3(-.861,.328,-.389))/138.);}';
@@ -84,7 +88,7 @@ void main(){wp=p;normal=n;base=ink;surface=mat;vec3 point=p;point.y=mix(p.y,.19-
 `,`
 precision highp float;
 varying vec3 wp,normal,base;varying float surface,dist;
-uniform vec3 eye;uniform vec2 viewport;uniform vec4 driver;
+uniform vec3 eye;uniform vec2 viewport;uniform vec4 driver,nearLamps;
 uniform float time,mirrored,actor,texel;
 uniform sampler2D shadowMap,mirrorMap,grain;
 `+lightSpace+skyLight+`
@@ -132,13 +136,20 @@ void main(){
      vec3 h=normalize(sun+view);float gloss=pow(max(0.,dot(n,h)),kind==5.?44.:25.);
      c+=vec3(.54,.32,.215)*gloss*vis;
      float rim=pow(1.-abs(dot(n,view)),2.5);
-     if(kind==4.)c+=vec3(.075,.177,.20)*(.30+.70*rim);
+     if(kind==4.)c+=vec3(.091,.218,.23)*(.40+.60*rim);
      if(kind==5.)c=mix(c,vec3(.38,.483,.57),.11+.29*pow(1.-abs(dot(n,view)),2.));
    }
  }
  if(kind==7.)c=mix(vec3(.93,.54,.23),vec3(1.,.88,.64),ink.g);
  if(kind==8.)c=ink*vec3(1.18,.73,.75);
- if(kind==9.)c=mix(vec3(.83,.482,.236),vec3(.99,.728,.419),max(n.y,0.));
+ if(kind==9.)c=mix(vec3(.90,.594,.335),vec3(.99,.773,.465),max(n.y,0.));
+ if(kind!=1.&&kind!=7.&&kind!=8.&&kind!=9.&&mirrored<.5){
+   vec2 lampA=wp.xz-nearLamps.xy,lampB=wp.xz-nearLamps.zw;
+   float range2=min(dot(lampA,lampA),dot(lampB,lampB));
+   float pool=max(0.,1.-range2/26.);
+   float reach=(1.-smoothstep(15.,23.,distance(wp.xz,driver.xy)))*(1.-smoothstep(1.,4.5,wp.y));
+   c+=vec3(.31,.145,.052)*pool*pool*reach*(.32+ink*.68);
+ }
  if(actor<.5&&kind!=1.&&mirrored<.5){
    vec2 delta=wp.xz-driver.xy,forward=vec2(sin(driver.z),cos(driver.z));
    float along=dot(delta,forward)-1.82,side=abs(dot(delta,vec2(forward.y,-forward.x)));
@@ -192,7 +203,7 @@ void main(){gl_FragColor=vec4(duskSky(normalize(look+right*screen.x/lens.x+up*sc
   gl.bindFramebuffer(gl.FRAMEBUFFER,shadows.fbo);gl.viewport(0,0,size,size);gl.clearColor(1,1,1,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(shadow);
   const shadowP=gl.getAttribLocation(shadow,"p");gl.enableVertexAttribArray(shadowP);gl.vertexAttribPointer(shadowP,3,gl.FLOAT,false,40,0);gl.drawArrays(gl.TRIANGLES,0,scene.data.length/6);gl.disableVertexAttribArray(shadowP);gl.enable(gl.DITHER);
   gl.useProgram(main);const loc={};
-  for(const name of ["eye","right","up","look","lens","driver","time","viewport","mirrored","actor","shadowMap","mirrorMap","grain","texel"])loc[name]=gl.getUniformLocation(main,name);
+  for(const name of ["eye","right","up","look","lens","driver","nearLamps","time","viewport","mirrored","actor","shadowMap","mirrorMap","grain","texel"])loc[name]=gl.getUniformLocation(main,name);
   const at=["p","n","ink","mat"].map(name=>gl.getAttribLocation(main,name));for(const pos of at)gl.enableVertexAttribArray(pos);
   function texture(unit,tex){gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,tex);}
   texture(0,shadows.texture);texture(2,grain);gl.uniform1i(loc.shadowMap,0);gl.uniform1i(loc.mirrorMap,1);gl.uniform1i(loc.grain,2);gl.uniform1f(loc.texel,1/size);
@@ -206,9 +217,17 @@ void main(){gl_FragColor=vec4(duskSky(normalize(look+right*screen.x/lens.x+up*sc
     gl.depthMask(false);gl.drawArrays(gl.TRIANGLES,0,3);gl.depthMask(true);
     gl.disableVertexAttribArray(skyCorner);gl.useProgram(main);for(const pos of at)gl.enableVertexAttribArray(pos);
   }
+  const lamps=stops3.map(s=>[s.x+(s.bx-s.x)*.48,s.z+(s.bz-s.z)*.48]);
   let reflectedCamera=null;
   return {kind:"WebGL",render(camera,actors,time,car){
     for(const k of ["eye","right","up","look"])gl.uniform3fv(loc[k],camera[k]);gl.uniform2f(loc.lens,camera.scale/camera.aspect,camera.scale);
+    let first=Infinity,second=Infinity,one=lamps[0],two=lamps[1];
+    for(const lamp of lamps){
+      const dist=(lamp[0]-car.x)**2+(lamp[1]-car.z)**2;
+      if(dist<first){second=first;two=one;first=dist;one=lamp;}
+      else if(dist<second){second=dist;two=lamp;}
+    }
+    gl.uniform4f(loc.nearLamps,one[0],one[1],two[0],two[1]);
     gl.uniform4f(loc.driver,car.x,car.z,car.h,car.y);gl.uniform1f(loc.time,time);
     const state=[...camera.eye,...camera.look,camera.aspect];if(!reflectedCamera||state.some((v,i)=>Math.abs(v-reflectedCamera[i])>(i<3?.11:.0017))){
       texture(1,grain);gl.bindFramebuffer(gl.FRAMEBUFFER,mirror.fbo);gl.viewport(0,0,mirror.w,mirror.h);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.uniform1f(loc.mirrored,1);draw(still,scene.data.length/6,0);reflectedCamera=state;
@@ -758,10 +777,10 @@ function advance(dt){
 function cameraAt(dt,w,h){
  const heading=mode===1?car.h+Math.PI:orbit;const a=heading+dragOffset,portrait=w/h<.85,dist=(mode===2?17:mode===1?10:19.5)*(portrait?1.18:1)*zoom;
  const tx=car.x+Math.sin(car.h)*(mode===1?2.9:1.0),tz=car.z+Math.cos(car.h)*(mode===1?2.9:1.0);
- const x=car.x+Math.sin(a)*dist,z=car.z+Math.cos(a)*dist,y=(mode===2?26:mode===1?5.2:8.6)*(portrait?1.09:1)*zoom+car.y*.5;
+ const x=car.x+Math.sin(a)*dist,z=car.z+Math.cos(a)*dist,y=(mode===2?26:mode===1?5.2:6.7)*(portrait?1.09:1)*zoom+car.y*.5;
  const alpha=camReady?1-Math.exp(-dt*(mode===1?4.6:6.0)):1;camReady=true;
  for(const [k,v] of [["x",x],["y",y],["z",z],["tx",tx],["tz",tz]])cam[k]=mix(cam[k],v,alpha);
- return makeCamera([cam.x,cam.y,cam.z],[cam.tx,car.y*.44+1.0,cam.tz],w,h);}
+ return makeCamera([cam.x,cam.y,cam.z],[cam.tx,car.y*.44+(mode===0?1.64:1.0),cam.tz],w,h);}
 function drawActors(){const m=new Mesh();m.hardware=renderer&&renderer.kind==='WebGL';trailCar(m,car);for(const p of props)m.at(p.x,.17,p.z,p.spin,()=>{m.box(0,0,0,.62,.09,.62,"8d794f");m.taper(0,.08,0,.25,.048,.72,"dd7843",7);m.taper(0,.45,0,.155,.125,.14,"f4e7bc",7);},p.tilt*.72);
  const a=clock*.080+.3,x=33*Math.cos(a),z=19*Math.sin(a);m.at(x,8.7+.4*Math.sin(a*2),z,Math.atan2(-33*Math.sin(a),19*Math.cos(a)),()=>seaplane(m),.01,.14);
  const phase=clock*.18; m.at(-16+Math.sin(phase*.3)*2,13+Math.sin(phase)*.6,-22,0,()=>{m.taper(0,0,0,.42,1.65,1.65,"dba363",12);m.taper(0,1.65,0,1.65,1.48,.9,"f2cf84",12);m.taper(0,2.55,0,1.48,.38,.82,"dc986b",12);m.box(0,-1,0,.62,.45,.62,"967452");for(const t of [-.26,.26])m.box(t,-.56,0,.055,.65,.055,"8e805e");});return m;}
@@ -794,6 +813,6 @@ function frame(ts){requestAnimationFrame(frame);if(!renderer||document.hidden)re
  if(canvas3.width!==Math.round(w*ratio)||canvas3.height!==Math.round(h*ratio)){canvas3.width=Math.round(w*ratio);canvas3.height=Math.round(h*ratio);}
  if(!manual.open){clock+=dt;const steps=Math.ceil(dt/.019);for(let k=0;k<steps;k++)advance(dt/steps);}
  const camera=cameraAt(dt,w,h);renderer.render(camera,drawActors(),clock,car);ui(camera);}
-if(renderer&&canvas3.dataset){canvas3.dataset.renderer=renderer.kind;canvas3.dataset.edition="amber-dusk";}
+if(renderer&&canvas3.dataset){canvas3.dataset.renderer=renderer.kind;canvas3.dataset.edition="amber-blue-hour";}
 if(renderer)requestAnimationFrame(frame);canvas3.addEventListener("webglcontextlost",e=>{e.preventDefault();renderer=null;const m=document.querySelector("#problem");m.hidden=false;});
 </script></body></html>
