@@ -29,6 +29,7 @@ jobs:
           o=Options()
           for a in ['--headless=new','--no-sandbox','--window-size=1280,960','--use-angle=swiftshader','--enable-unsafe-swiftshader','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--autoplay-policy=no-user-gesture-required']:
               o.add_argument(a)
+          o.set_capability('goog:loggingPrefs',{'browser':'ALL'})
           o.add_experimental_option('prefs',{'download.prompt_for_download':False,'download.directory_upgrade':True})
           d=webdriver.Chrome(service=Service(os.environ['DRIVER']),options=o)
           w=WebDriverWait(d,35)
@@ -59,19 +60,21 @@ jobs:
               for width in (1170,375):
                   d.set_window_size(width,850)
                   for variant in 'abcde':
+                      print('Opening',variant,width,flush=True)
                       click('nav [data-view="'+variant+'"]')
                       w.until(lambda _:d.current_url.endswith('#'+variant))
-                      assert find('#frame').is_displayed() and not find('#overview').is_displayed()
-                      assert d.execute_script("return document.documentElement.scrollWidth<=innerWidth")
+                      w.until(lambda _:d.execute_script("return !document.querySelector('#frame').hidden && document.querySelector('#overview').hidden && document.querySelector('#reference h1')?.textContent.startsWith(arguments[0])", variant.upper()))
+                      assert d.execute_script("return document.documentElement.scrollWidth<=innerWidth"),d.execute_script("return [...document.querySelectorAll('#stage *')].filter(el=>el.getBoundingClientRect().right>innerWidth).slice(0,15).map(el=>[el.tagName,el.className,el.getBoundingClientRect().right])")
                       assert len(d.find_elements(By.CSS_SELECTOR,'#reference a'))==2
-                      assert len(d.find_elements(By.CSS_SELECTOR,'#stage a[href]'))>=10
+                      assert len(d.find_elements(By.CSS_SELECTOR,'#stage a[href]'))>=10, len(d.find_elements(By.CSS_SELECTOR,'#stage a[href]'))
                   field=find('#stage input')
                   field.send_keys('help')
                   click('#stage form button')
                   assert '列出项目' in find('#stage output').text
                   click('nav [data-view="all"]')
-                  assert find('#overview').is_displayed()
+                  w.until(lambda _:find('#overview').is_displayed())
               click('.look-hit[href="#e"]')
+              w.until(lambda _:find('#stage input').is_displayed())
               find('#stage input').send_keys('open island')
               click('#stage form button')
               w.until(lambda _:d.current_url.endswith('/labs/island.html'))
@@ -181,6 +184,9 @@ jobs:
                   b.click()
               assert 'Dijkstra' in find('#answer').text
               print('PASS completed route and cost comparison',flush=True)
+          except Exception:
+              print('PAGE',d.current_url,d.execute_script("return [document.readyState, document.querySelector('#frame')?.hidden,document.querySelector('#overview')?.hidden,document.querySelector('#reference')?.innerText,document.body.innerText.slice(0,280)]"),d.get_log('browser'),flush=True)
+              raise
           finally:
               d.quit()
           PYTHON
