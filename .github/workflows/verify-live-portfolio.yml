@@ -40,6 +40,11 @@ jobs:
           el = lambda selector: driver.find_element(By.CSS_SELECTOR, selector)
           js = driver.execute_script
           
+          def click_item(node):
+              js("arguments[0].scrollIntoView({behavior:'instant',block:'center',inline:'nearest'})", node)
+              wait.until(lambda d: js("const a=arguments[0],r=a.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,t=document.elementFromPoint(x,y); return a===t || a.contains(t)", node))
+              node.click()
+
           def photograph(name):
               time.sleep(.9)
               image = ImageGrab.grab(xdisplay=os.environ['DISPLAY'])
@@ -47,6 +52,7 @@ jobs:
               image.save(folder/name)
           
           try:
+              driver.execute_cdp_cmd('Emulation.setEmulatedMedia', {'features':[{'name':'prefers-reduced-motion','value':'reduce'}]})
               driver.get(home)
               wait.until(lambda d: 'Mingxuan' in el('#about').text)
               assert driver.current_url == home
@@ -57,37 +63,37 @@ jobs:
               js("return document.fonts.ready")
               photograph('Q2-03-portfolio-home.png')
               print('PASS portfolio first screen and cover', flush=True)
-              el('#playPatrol').click()
+              click_item(el('#playPatrol'))
               driver.switch_to.frame(el('#gameSlot iframe'))
               wait.until(lambda d: el('#launch').is_displayed())
-              el('#launch').click()
+              click_item(el('#launch'))
               wait.until(lambda d: js("return typeof playing !== 'undefined' && playing && !!cam && document.body.classList.contains('play')"))
               assert js("return !!document.getElementById('world').getContext('webgl2')")
               position = js("return Array.from(pos)")
               wait.until(lambda d: sum(abs(a-b) for a,b in zip(position, js("return Array.from(pos)"))) > 0.1)
               print('PASS WebGL free flight, aircraft moved', flush=True)
               driver.switch_to.default_content()
-              el('#closePatrol').click()
-              el('.try-time').click()
+              click_item(el('#closePatrol'))
+              click_item(el('.try-time'))
               wait.until(lambda d: driver.current_url.endswith('#one-second'))
               for sec in (1,5,10):
-                  el('input[value="%s"]+span' % (1000*sec)).click()
+                  click_item(el('input[value="%s"]+span' % (1000*sec)))
                   pad = el('#secondPad')
-                  pad.click()
+                  click_item(pad)
                   assert pad.get_attribute('aria-pressed') == 'true'
                   time.sleep(1.0)
-                  pad.click()
+                  click_item(pad)
                   assert len(driver.find_elements(By.CSS_SELECTOR, '#secondHistory .done')) == 1
                   assert '2 / 10' in el('#secondRound').text
                   print('PASS timer',sec,el('#secondFeedback').text,flush=True)
-              el('.course-link').click()
+              click_item(el('.course-link'))
               wait.until(lambda d: driver.current_url == home+'network-notes.html#notes')
               assert el('#notes-title').text == 'Field notes'
               assert js("return document.querySelector('.atlas img').naturalWidth") > 0
               assert js("return [...document.styleSheets].some(s=>s.href?.endsWith('/style.css') && s.cssRules.length)")
               for card in driver.find_elements(By.CSS_SELECTOR, '#notes details'):
                   if card.get_attribute('open') is None:
-                      card.find_element(By.TAG_NAME,'summary').click()
+                      click_item(card.find_element(By.TAG_NAME,'summary'))
                   assert card.find_element(By.TAG_NAME,'p').is_displayed()
               print('PASS all three course notebook entries, stylesheet and illustration', flush=True)
               driver.get(deployment)
@@ -111,4 +117,31 @@ jobs:
         with:
           name: portfolio-evidence
           path: evidence/*.png
+          if-no-files-found: error
+      - name: Collect exactly the deployed course source
+        if: success()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, pathlib, urllib.request
+          site = pathlib.Path('site')
+          site.mkdir()
+          for name, expected in {
+              'index.html': 'f93be43b3bd48ef7d430aedde12b882a4dc91ddf',
+              'network-notes.html': '47dbe304f7ee84a4c82372c163a2f1800c92190a',
+              'style.css': '56b537d25774ab204afeeb927158bf16719ea15d',
+              'route-map.png': '70aee67fd7130f160e0e245e5e6291d4c01dc354'
+          }.items():
+              with urllib.request.urlopen('https://raw.githubusercontent.com/Xuan0809999/xuan0809999.github.io/0ff8aa92bd1210b97952dfa490f56c025687b595/'+name, timeout=30) as r:
+                  data = r.read()
+              assert hashlib.sha1(b'blob '+str(len(data)).encode()+b'\x00'+data).hexdigest() == expected
+              (site/name).write_bytes(data)
+          PY
+      - name: Package the course and screenshots together
+        uses: actions/upload-artifact@v4
+        with:
+          name: Question2-portfolio
+          path: |
+            site/
+            evidence/
           if-no-files-found: error
