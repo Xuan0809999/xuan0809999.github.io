@@ -77,14 +77,28 @@
     document.getElementById('islandFacts').textContent=pal.name+'色系 · 图号 MX-'+code;
   }
   function release(){if(objectURL){URL.revokeObjectURL(objectURL);objectURL=''}}
-  function generate(){const name=field.value.normalize('NFC').trim().replace(/\s+/gu,' ');if(!name){field.setCustomValidity('先输入一个名字。');field.reportValidity();return}
-    field.setCustomValidity('');field.value=name;version++;release();activeName=name;paint(name);save.disabled=false;status.textContent='明信片已生成，可保存为 1440 × 960 的 PNG。'}
-  document.getElementById('nameForm').onsubmit=e=>{e.preventDefault();generate()};field.oninput=()=>{field.setCustomValidity('');status.textContent='点击「生成我的岛」应用新名字。'};
-  save.onclick=()=>{const ticket=version,name=activeName;save.disabled=true;
-    canvas.toBlob(blob=>{if(ticket!==version)return;save.disabled=false;if(!blob){status.textContent='图片未生成，请重试。';return}release();objectURL=URL.createObjectURL(blob);
-      const a=document.createElement('a');a.href=objectURL;a.download='island-'+name.replace(/[<>:"/\\|?*\u0000-\u001f]/g,'_')+'.png';document.body.append(a);a.click();a.remove();
-      status.textContent='明信片已生成。';const open=document.createElement('a');open.href=objectURL;open.target='_blank';open.rel='noopener';open.textContent='打开 PNG 图片';status.append(open)
+
+  function generate(){
+    const name=field.value.normalize('NFC').trim().replace(/\s+/gu,' ');
+    if(!name){field.setCustomValidity('先输入一个名字。');field.reportValidity();return}
+    field.setCustomValidity('');field.value=name;
+    const ticket=++version;
+    release();save.removeAttribute('href');save.setAttribute('aria-disabled','true');
+    activeName=name;paint(name);status.textContent='正在准备明信片图片。';
+    canvas.toBlob(blob=>{
+      if(ticket!==version)return;
+      if(!blob){status.textContent='图片未生成，请再点一次「生成我的岛」。';return}
+      objectURL=URL.createObjectURL(blob);save.href=objectURL;
+      save.download='island-'+name.replace(/[<>:"/\\|?*\u0000-\u001f]/g,'_')+'.png';
+      save.removeAttribute('aria-disabled');status.textContent='明信片已生成，可保存为 1440 × 960 的 PNG。'
     },'image/png')
+  }
+  document.getElementById('nameForm').onsubmit=e=>{e.preventDefault();generate()};
+  field.oninput=()=>{field.setCustomValidity('');status.textContent='点击「生成我的岛」应用新名字。'};
+  save.onclick=e=>{
+    if(!objectURL){e.preventDefault();return}
+    status.textContent='已准备好 '+activeName+' 岛的明信片。';
+    const open=document.createElement('a');open.href=objectURL;open.target='_blank';open.rel='noopener';open.textContent='打开 PNG 图片';status.append(open)
   };
   window.addEventListener('pagehide',e=>{if(!e.persisted)release()});generate()
 })();
