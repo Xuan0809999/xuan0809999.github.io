@@ -1,0 +1,60 @@
+* { box-sizing: border-box; }
+:root {
+  color-scheme: light;
+  --paper: #f7f5ed; --ink: #202923; --muted: #4c584e; --line: #c6c9b9;
+  --green: #355844; --umber: #88441f; --mono: Consolas, "Courier New", monospace;
+}
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.55 "Segoe UI", Arial, sans-serif; }
+a { color: inherit; text-decoration: none; }
+a:hover { text-decoration: underline; text-underline-offset: .24em; }
+a:focus-visible, summary:focus-visible { outline: 3px solid var(--umber); outline-offset: 5px; }
+.sheet { width: min(1200px, 89%); margin: auto; }
+header, nav, .section-heading, footer, figcaption { display: flex; align-items: center; justify-content: space-between; }
+header { border-bottom: 1px solid var(--line); padding: 21px 0; }
+.wordmark { display: inline-flex; align-items: baseline; font: 700 25px Georgia, serif; letter-spacing: -.05em; }
+.dot { color: var(--umber); }
+.symbol { align-self: center; display: inline-grid; place-items: center; background: var(--green); color: var(--paper); width: 28px; height: 28px; font: italic 28px/.85 Georgia,serif; border-radius: 7px 2px; margin-right: 9px; }
+nav { gap: 26px; font-size: .94rem; }
+.hero { display: grid; grid-template-columns: 1fr 1.16fr; align-items: center; gap: clamp(22px, 4vw, 64px); padding: clamp(36px, 5vw, 74px) 0; }
+.kicker, figcaption, .category { font-family: var(--mono); }
+.kicker { color: var(--green); text-transform: uppercase; font-size: .78rem; letter-spacing: .12em; font-weight: bold; display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
+.kicker span { width: 23px; height: 2px; background: var(--green); }
+h1, h2, .question { font-family: Georgia, "Times New Roman", serif; font-weight: normal; }
+h1 { font-size: clamp(50px, 6.3vw, 96px); letter-spacing: -.073em; line-height: 1.01; margin: 0; }
+h1 em { color: var(--green); }
+.lead { max-width: 47ch; margin: 20px 0 26px; font-size: clamp(16px, 1.32vw, 20px); color: var(--muted); }
+.button { display: inline-flex; align-items: center; gap: 20px; padding: 10px 17px; color: white; background: var(--green); border-radius: 3px; font-weight: 600; }
+.button:hover { background: #264734; }
+.atlas { margin: 0; }
+.atlas img { width: 100%; height: auto; display: block; background: #e3e8d8; border: 1px solid #a7b39d; }
+figcaption { margin-top: 8px; gap: 12px; color: var(--muted); font-size: .74rem; }
+figcaption span:first-child { font-weight: bold; color: var(--green); }
+.notes { padding: 25px 0 32px; border-top: 2px solid var(--ink); scroll-margin-top: 12px; }
+.section-heading { gap: 15px; margin-bottom: 14px; align-items: baseline; }
+h2 { margin: 0; font-size: clamp(32px, 3.5vw, 46px); line-height: 1.2; letter-spacing: -.045em; }
+.section-heading p { color: var(--muted); margin: 0; font-size: .91rem; }
+details { border-bottom: 1px solid var(--line); }
+summary { list-style: none; display: grid; grid-template-columns: 105px 1fr 26px; align-items: baseline; gap: 10px; padding: 15px 0; cursor: pointer; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font: 22px/1 var(--mono); color: var(--green); text-align: center; }
+details[open] summary::after { content: "−"; }
+summary:hover .question { color: var(--green); text-decoration: underline; text-underline-offset: .16em; }
+.category { color: var(--umber); font-size: .78rem; text-transform: uppercase; letter-spacing: .055em; }
+.question { font-size: clamp(21px, 2vw, 28px); line-height: 1.25; letter-spacing: -.027em; }
+details p { max-width: 74ch; margin: 0 35px 19px 115px; color: var(--muted); }
+footer { border-top: 1px solid var(--line); padding: 19px 0 25px; color: var(--muted); font-size: .84rem; }
+.skip { position: absolute; left: 12px; top: -80px; background: white; padding: 8px; }
+.skip:focus { top: 6px; }
+@media (max-width: 720px) {
+  .sheet { width: 90%; }
+  header { padding: 14px 0; } nav { gap: 15px; }
+  .hero { grid-template-columns: 1fr; gap: 25px; padding: 32px 0; }
+  .lead { margin: 15px 0 20px; }
+  .section-heading { display: block; } .section-heading p { margin-top: 5px; }
+  summary { grid-template-columns: 1fr 25px; gap: 4px; }
+  .category { grid-column: 1; } .question { grid-column: 1; }
+  summary::after { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+  details p { margin: 0 20px 16px 0; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
