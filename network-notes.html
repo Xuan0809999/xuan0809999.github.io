@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Xuan’s personal notebook about networks, video streaming and how a web page reaches a browser.">
+  <meta name="theme-color" content="#f7f5ed">
+  <title>Xuan — Network field notes</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body id="top">
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="sheet">
+    <header>
+      <a class="wordmark" href="#top" aria-label="Xuan, home"><span class="symbol" aria-hidden="true">x</span> Xuan<span class="dot">.</span></a>
+      <nav aria-label="Main navigation"><a href="./">Portfolio</a><a href="#notes">Field notes</a><a href="https://github.com/Xuan0809999">GitHub <span aria-hidden="true">↗</span></a></nav>
+    </header>
+    <main id="main">
+      <section class="hero" aria-labelledby="intro">
+        <div class="intro">
+          <p class="kicker"><span aria-hidden="true"></span> Personal notebook</p>
+          <h1 id="intro">Hello, I’m <em>Xuan.</em></h1>
+          <p class="lead">I’m learning how computers talk to each other. I follow packets, compare protocols and keep notes on what I can see in a network trace.</p>
+          <a class="button" href="#notes">Read my field notes <span aria-hidden="true">↓</span></a>
+        </div>
+        <figure class="atlas">
+          <img src="./route-map.png" width="960" height="630" alt="An illustrated route connects a source to a destination through three intermediate hops on a contour map.">
+          <figcaption><span>Route sketch</span><span>Illustration · 3 intermediate hops</span></figcaption>
+        </figure>
+      </section>
+      <section class="notes" id="notes" aria-labelledby="notes-title">
+        <div class="section-heading"><h2 id="notes-title">Field notes</h2><p>Questions from my networking practice</p></div>
+        <details open><summary><span class="category">Transport</span><span class="question">What happens when a video frame goes missing?</span></summary>
+          <p>In a video-streaming experiment, I compared TCP and UDP with the same clip. TCP delivered the missing bytes after a retransmission, which made some later frames wait. With one frame per UDP datagram, a lost datagram left a gap and the next frame could still arrive.</p></details>
+        <details><summary><span class="category">Routing</span><span class="question">What does a hop tell me?</span></summary>
+          <p>A hop is one step along a network path. A traceroute can reveal routers that reply as its probes travel farther. A silent hop leaves a gap in the output, even when the destination is reachable.</p></details>
+        <details><summary><span class="category">Web</span><span class="question">How does this page reach a browser?</span></summary>
+          <p>DNS provides an address for the site’s hostname. The browser then requests the HTML over HTTPS. The HTML points it to the stylesheet and route illustration, which it can fetch separately or reuse from its cache.</p></details>
+      </section>
+    </main>
+    <footer><span>Xuan · Network field notes</span><a href="#top">Back to top ↑</a></footer>
+  </div>
+</body>
+</html>
