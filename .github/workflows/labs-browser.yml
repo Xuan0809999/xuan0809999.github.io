@@ -26,8 +26,9 @@ jobs:
           from selenium.webdriver.support.ui import WebDriverWait
           home='https://xuan0809999.github.io/'
           o=Options()
-          for a in ['--headless=new','--incognito','--no-sandbox','--window-size=1280,960','--use-angle=swiftshader','--enable-unsafe-swiftshader','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--autoplay-policy=no-user-gesture-required']:
+          for a in ['--headless=new','--no-sandbox','--window-size=1280,960','--use-angle=swiftshader','--enable-unsafe-swiftshader','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--autoplay-policy=no-user-gesture-required']:
               o.add_argument(a)
+          o.add_experimental_option('prefs',{'download.prompt_for_download':False,'download.directory_upgrade':True})
           d=webdriver.Chrome(service=Service(os.environ['DRIVER']),options=o)
           w=WebDriverWait(d,35)
           def find(sel):return d.find_element(By.CSS_SELECTOR,sel)
@@ -91,7 +92,13 @@ jobs:
               assert find('#islandTitle').text=='Mingxuan 岛'
               assert compare(pixels(first),pixels(postcard()),'same named island')
               with tempfile.TemporaryDirectory() as folder:
-                  d.execute_cdp_cmd('Browser.setDownloadBehavior',{'behavior':'allow','downloadPath':folder})
+                  w.until(lambda _:find('#saveCard').get_attribute('href').startswith('blob:') if find('#saveCard').get_attribute('href') else False)
+                  settings={'behavior':'allow','downloadPath':folder}
+                  browser_context=d.execute_cdp_cmd('Target.getTargetInfo',{})['targetInfo'].get('browserContextId')
+                  if browser_context:settings['browserContextId']=browser_context
+                  d.execute_cdp_cmd('Browser.setDownloadBehavior',settings)
+                  d.execute_cdp_cmd('Page.setDownloadBehavior',{'behavior':'allow','downloadPath':folder})
+                  assert find('#saveCard').get_attribute('download')=='island-Mingxuan.png'
                   click('#saveCard')
                   png=w.until(lambda _: next(iter(pathlib.Path(folder).glob('*.png')),None))
                   data=png.read_bytes()
