@@ -1,18 +1,11 @@
 'use strict';
 (()=>{
-const boards=document.querySelectorAll('.experiment-cover');
-function draw(canvas,idx){const g=canvas.getContext('2d');const w=540,h=200;canvas.width=w;canvas.height=h;
-const palettes=[['#283f36','#a9d3ab','#f2c380'],['#36584c','#9ec4af','#f4cc86'],['#725449','#ffdbab','#d4dfb7'],['#a3c0af','#f5deb0','#4e7767'],['#283e38','#ffd0a0','#9ad4c7'],['#435947','#dce4b8','#f4bf76']];const [bg,fg,hi]=palettes[idx];g.fillStyle=bg;g.fillRect(0,0,w,h);
-function line(path,color,width=3,dash=[]){g.beginPath();g.strokeStyle=color;g.lineWidth=width;g.lineCap='round';g.lineJoin='round';g.setLineDash(dash);path.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.stroke();g.setLineDash([])}
-function dot(x,y,r,color){g.beginPath();g.fillStyle=color;g.arc(x,y,r,0,Math.PI*2);g.fill()}
-function poly(coords,c){g.beginPath();coords.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.fillStyle=c;g.fill()}
-if(idx===0){for(let x=0;x<w;x+=28)line([[x,16],[x,184]],'#365143',1);const amps=[12,20,14,48,16,20,14,42,68,19,12,28,52,16,40,18,30,17,61,23,15,35,14];line([[0,101],[540,101]],'#66816d',2);amps.forEach((a,i)=>{let x=12+i*23;line([[x,102+a*.65],[x,102-a]],a>45?hi:fg,7)})}
-if(idx===1){const coast=[[135,71],[196,40],[265,51],[328,37],[402,65],[436,111],[395,143],[317,135],[269,163],[197,142],[148,152],[117,115],[135,71]];[1.64,1.34,1.11,1].forEach((v,i)=>{const p=coast.map(([x,y])=>[(x-270)*v+270,(y-100)*v+100]);if(i===3)poly(p,'#527d72');line(p,i===3?fg:'#658674',2)});const path=[[154,80],[237,55],[348,56],[413,104],[358,135],[275,147],[201,129],[143,111],[154,80]];line(path,hi,3,[6,5]);path.slice(0,8).forEach(([x,y])=>dot(x,y,5,hi))}
-if(idx===2){const tiles=[[130,110,-.19],[270,93,0],[409,112,.17]];tiles.forEach(([x,y,a],i)=>{g.save();g.translate(x,y);g.rotate(a);g.fillStyle='#4b4038';g.fillRect(-47,-56,98,120);g.fillStyle=i===1?fg:'#d4b48f';g.fillRect(-50,-62,98,120);const ink='#4a4c3c';if(i===0)poly([[-27,8],[-16,-17],[11,-23],[29,-4],[22,18],[-14,22]],ink);if(i===1){g.fillStyle=ink;g.fillRect(-21,-24,39,50);line([[-12,-12],[9,-12]],fg,3);line([[-12,-2],[9,-2]],fg,3)}if(i===2){line([[-16,17],[20,-23]],ink,5);line([[15,17],[-17,-23]],ink,5);for(const xx of [-16,16]){dot(xx,17,10,ink);dot(xx,17,5,'#d4b48f')}}g.restore()})}
-if(idx===3){dot(431,45,22,fg);poly([[0,113],[70,74],[119,93],[190,66],[273,104],[352,68],[413,95],[478,67],[540,91],[540,200],[0,200]],'#84a18e');g.fillStyle='#577a69';g.fillRect(0,135,w,65);line([[0,157],[540,157]],fg,2,[25,15]);for(const x of [234,302]){dot(x,146,22,'#293e35');dot(x,146,16,'#8ca68e')}line([[234,146],[249,119],[270,146],[234,146],[284,117],[302,146]],'#e4a16a',5);poly([[196,79],[230,88],[247,82],[260,67],[269,42],[283,35],[300,40],[292,51],[276,52],[277,83],[258,106],[228,106]],'#faf1d5');poly([[295,40],[342,46],[309,57],[294,51]],'#de9755');dot(288,40,2.6,'#273e35');line([[248,104],[243,114],[266,127]],'#995e3d',4)}
-if(idx===4){for(let x=0;x<w;x+=20)for(let y=10;y<h;y+=20)dot(x,y,1,'#506b5b');const p=[[40,145],[153,145],[224,80],[328,80],[393,124],[500,124]];line(p,fg,6);p.forEach(([x,y])=>{dot(x,y,10,fg);dot(x,y,5,bg)});[[168,110,fg],[371,81,hi]].forEach(([x,y,c])=>{g.fillStyle=c;g.fillRect(x-18,y-8,36,16);g.fillStyle=bg;g.fillRect(x-12,y-5,9,6);g.fillRect(x+2,y-5,9,6)})}
-if(idx===5){const pts=[[70,105],[159,51],[167,154],[272,93],[353,44],[374,153],[464,99]];for(const [a,b] of [[0,1],[0,2],[1,3],[2,3],[1,4],[3,4],[2,5],[3,5],[4,6],[5,6]])line([pts[a],pts[b]],'#97aa86',3);line([pts[0],pts[2],pts[3],pts[4],pts[6]],hi,5);pts.forEach(([x,y],i)=>{dot(x,y,13,i===0||i===6?hi:fg);dot(x,y,4,bg)})}}
-boards.forEach((c,i)=>draw(c,i));
-const req=new URLSearchParams(location.search).get('route');
-if(req&&/^0[1-7]{7}$/.test(req)&&new Set(req).size===8){document.getElementById('playPatrol').click();document.getElementById('closePatrol').addEventListener('click',()=>{const u=new URL(location.href);u.searchParams.delete('route');history.replaceState(null,'',u)}, {once:true})}
+  const route=new URLSearchParams(location.search).get('route');
+  if(!route||!/^0[1-7]{7}$/.test(route)||new Set(route).size!==8)return;
+  document.getElementById('playPatrol').click();
+  document.getElementById('closePatrol').addEventListener('click',()=>{
+    const address=new URL(location.href);
+    address.searchParams.delete('route');
+    history.replaceState(null,'',address);
+  },{once:true});
 })();
