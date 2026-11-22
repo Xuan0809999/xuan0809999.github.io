@@ -1,0 +1,114 @@
+name: Verify public portfolio in private Chrome
+on:
+  push:
+    branches: ['qa/portfolio-0ff8aa92']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Prepare browser checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk xvfb xauth
+          python3 -m venv "$RUNNER_TEMP/pages-test"
+          "$RUNNER_TEMP/pages-test/bin/pip" -q install selenium pillow
+          cat > check.py <<'PYTHON'
+          import os, re, time, pathlib
+          from PIL import ImageGrab
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.chrome.service import Service
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.support.ui import WebDriverWait
+          
+          home = 'https://xuan0809999.github.io/'
+          deployment = 'https://github.com/Xuan0809999/xuan0809999.github.io/actions/runs/45017009148'
+          folder = pathlib.Path('evidence')
+          folder.mkdir(exist_ok=True)
+          opt = Options()
+          for flag in ['--incognito','--lang=en-US','--window-position=0,0','--window-size=1440,980','--disable-dev-shm-usage','--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--no-first-run','--no-default-browser-check']:
+              opt.add_argument(flag)
+          opt.add_experimental_option("excludeSwitches", ["enable-automation"])
+          driver = webdriver.Chrome(service=Service(os.environ['CHROMEDRIVER']), options=opt)
+          driver.set_page_load_timeout(75)
+          wait = WebDriverWait(driver, 60)
+          el = lambda selector: driver.find_element(By.CSS_SELECTOR, selector)
+          js = driver.execute_script
+          
+          def photograph(name):
+              time.sleep(.9)
+              image = ImageGrab.grab(xdisplay=os.environ['DISPLAY'])
+              assert image.width >= 1400
+              image.save(folder/name)
+          
+          try:
+              driver.get(home)
+              wait.until(lambda d: 'Mingxuan' in el('#about').text)
+              assert driver.current_url == home
+              assert 'XJTLU' in el('.hero-copy p').text
+              assert el('#playPatrol').is_displayed() and el('.try-time').is_displayed()
+              assert js("return document.querySelector('.hero img').naturalWidth") > 0
+              assert not driver.find_elements(By.CSS_SELECTOR, 'a[href^="mailto:"]')
+              js("return document.fonts.ready")
+              photograph('Q2-03-portfolio-home.png')
+              print('PASS portfolio first screen and cover', flush=True)
+              el('#playPatrol').click()
+              driver.switch_to.frame(el('#gameSlot iframe'))
+              wait.until(lambda d: el('#launch').is_displayed())
+              el('#launch').click()
+              wait.until(lambda d: js("return typeof playing !== 'undefined' && playing && !!cam && document.body.classList.contains('play')"))
+              assert js("return !!document.getElementById('world').getContext('webgl2')")
+              position = js("return Array.from(pos)")
+              wait.until(lambda d: sum(abs(a-b) for a,b in zip(position, js("return Array.from(pos)"))) > 0.1)
+              print('PASS WebGL free flight, aircraft moved', flush=True)
+              driver.switch_to.default_content()
+              el('#closePatrol').click()
+              el('.try-time').click()
+              wait.until(lambda d: driver.current_url.endswith('#one-second'))
+              for sec in (1,5,10):
+                  el('input[value="%s"]+span' % (1000*sec)).click()
+                  pad = el('#secondPad')
+                  pad.click()
+                  assert pad.get_attribute('aria-pressed') == 'true'
+                  time.sleep(1.0)
+                  pad.click()
+                  assert len(driver.find_elements(By.CSS_SELECTOR, '#secondHistory .done')) == 1
+                  assert '2 / 10' in el('#secondRound').text
+                  print('PASS timer',sec,el('#secondFeedback').text,flush=True)
+              el('.course-link').click()
+              wait.until(lambda d: driver.current_url == home+'network-notes.html#notes')
+              assert el('#notes-title').text == 'Field notes'
+              assert js("return document.querySelector('.atlas img').naturalWidth") > 0
+              assert js("return [...document.styleSheets].some(s=>s.href?.endsWith('/style.css') && s.cssRules.length)")
+              for card in driver.find_elements(By.CSS_SELECTOR, '#notes details'):
+                  if card.get_attribute('open') is None:
+                      card.find_element(By.TAG_NAME,'summary').click()
+                  assert card.find_element(By.TAG_NAME,'p').is_displayed()
+              print('PASS all three course notebook entries, stylesheet and illustration', flush=True)
+              driver.get(deployment)
+              wait.until(lambda d: 'success' in el('body').text.lower())
+              assert driver.current_url.rstrip('/') == deployment
+              assert 'pages build and deployment' in el('body').text.lower()
+              js("window.scrollTo(0,0)")
+              photograph('Q2-04-portfolio-deployment.png')
+              print('PASS screenshot of successful Pages deployment',flush=True)
+          finally:
+              driver.quit()
+          PYTHON
+      - name: Play both live games and open the course notebook
+        shell: bash
+        run: |
+          export CHROMEDRIVER="$(command -v chromedriver)"
+          xvfb-run -a -s '-screen 0 1440x980x24' "$RUNNER_TEMP/pages-test/bin/python" -u check.py
+      - name: Save browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portfolio-evidence
+          path: evidence/*.png
+          if-no-files-found: error
