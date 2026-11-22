@@ -1,4 +1,4 @@
-name: Live interactive lab checks
+name: Live portfolio layout and interaction checks
 on:
   push:
     branches: ['qa/labs-29873564']
@@ -40,6 +40,20 @@ jobs:
           try:
               d.get(home)
               w.until(lambda _:len(d.find_elements(By.CSS_SELECTOR,'.experiment-card'))==6)
+              for width in (375, 1280):
+                  d.set_window_size(width, 900)
+                  assert d.execute_script("return document.documentElement.scrollWidth<=window.innerWidth")
+                  assert d.execute_script("const i=document.querySelector('.poster-art img');return !!i && i.naturalWidth>0 && i.clientWidth>160")
+                  for cover in d.find_elements(By.CSS_SELECTOR,'.project-print'):
+                      d.execute_script("arguments[0].scrollIntoView({behavior:'instant',block:'center'})",cover)
+                      w.until(lambda _:d.execute_script('return arguments[0].naturalWidth>0', cover))
+                  assert len(d.find_elements(By.CSS_SELECTOR,'.project-print'))==6
+              print('PASS responsive homepage and six illustrations', flush=True)
+              click('.try-time');click('#secondPad');click('#secondPad')
+              assert '2 / 10' in find('#secondRound').text
+              click('.course-link')
+              assert find('#notes-title').text=='Field notes' and find('.studio-brand').is_displayed()
+              d.get(home)
               click('a.experiment-card')
               click('#language option[value="en"]')
               text=find('#sample').text
