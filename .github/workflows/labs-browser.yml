@@ -1,4 +1,4 @@
-name: Live portfolio and eight interactive projects
+name: Check the standalone style samples and live projects
 on:
   push:
     branches: ['qa/labs-29873564']
@@ -13,6 +13,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ -z "$(fc-list :lang=zh family)" ]; then sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk; fi
           python3 -m venv "$RUNNER_TEMP/lab-browser"
           "$RUNNER_TEMP/lab-browser/bin/pip" -q install selenium pillow
           export DRIVER="$(command -v chromedriver)"
@@ -40,6 +41,41 @@ jobs:
               d.get(home+'labs/'+name+'.html')
               assert find('h1').text and d.execute_script('return document.documentElement.scrollWidth<=innerWidth')
           try:
+              d.get(home+'style-preview/')
+              w.until(lambda _:len(d.find_elements(By.CSS_SELECTOR,'.look-hit'))==5)
+              d.set_window_size(1170,900)
+              w.until(lambda _: d.execute_script("return document.querySelector('.mini').getBoundingClientRect().width>200 && document.querySelector('.mini').getBoundingClientRect().width<500"))
+              # Capture the actual style chooser for the handoff.
+              time.sleep(.45)
+              shot=Image.open(io.BytesIO(d.get_screenshot_as_png())).convert('RGB')
+              bottom=d.execute_script("return Math.ceil(document.getElementById('overview').getBoundingClientRect().bottom+13)")
+              shot=shot.crop((0,0,shot.width,min(shot.height,bottom)))
+              shot.thumbnail((1050,760))
+              buf=io.BytesIO()
+              shot.save(buf,format='WEBP',quality=72)
+              screenshot=base64.b64encode(buf.getvalue()).decode('ascii')
+              for offset in range(0,len(screenshot),6000):
+                  print('SAMPLE_CAPTURE '+screenshot[offset:offset+6000],flush=True)
+              for width in (1170,375):
+                  d.set_window_size(width,850)
+                  for variant in 'abcde':
+                      click('nav [data-view="'+variant+'"]')
+                      w.until(lambda _:d.current_url.endswith('#'+variant))
+                      assert find('#frame').is_displayed() and not find('#overview').is_displayed()
+                      assert d.execute_script("return document.documentElement.scrollWidth<=innerWidth")
+                      assert len(d.find_elements(By.CSS_SELECTOR,'#reference a'))==2
+                      assert len(d.find_elements(By.CSS_SELECTOR,'#stage a[href]'))>=10
+                  field=find('#stage input')
+                  field.send_keys('help')
+                  click('#stage form button')
+                  assert '列出项目' in find('#stage output').text
+                  click('nav [data-view="all"]')
+                  assert find('#overview').is_displayed()
+              click('.look-hit[href="#e"]')
+              find('#stage input').send_keys('open island')
+              click('#stage form button')
+              w.until(lambda _:d.current_url.endswith('/labs/island.html'))
+              print('PASS all five samples on desktop and mobile, reference links, and terminal game entry',flush=True)
               d.get(home)
               w.until(lambda _:len(d.find_elements(By.CSS_SELECTOR,'.experiment-card'))==8)
               for width in (375, 1280):
