@@ -1,0 +1,83 @@
+name: Live interactive lab checks
+on:
+  push:
+    branches: ['qa/labs-29873564']
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Exercise the six public projects in Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/lab-browser"
+          "$RUNNER_TEMP/lab-browser/bin/pip" -q install selenium
+          export DRIVER="$(command -v chromedriver)"
+          "$RUNNER_TEMP/lab-browser/bin/python" - <<'PYTHON'
+          import os, time
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.chrome.service import Service
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.support.ui import WebDriverWait
+          home='https://xuan0809999.github.io/'
+          o=Options()
+          for a in ['--headless=new','--incognito','--no-sandbox','--window-size=1280,960','--use-angle=swiftshader','--enable-unsafe-swiftshader','--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream','--autoplay-policy=no-user-gesture-required']:
+              o.add_argument(a)
+          d=webdriver.Chrome(service=Service(os.environ['DRIVER']),options=o)
+          w=WebDriverWait(d,35)
+          def find(sel):return d.find_element(By.CSS_SELECTOR,sel)
+          def click(sel):
+              n=find(sel)
+              d.execute_script("arguments[0].scrollIntoView({behavior:'instant',block:'center'})",n)
+              n.click()
+          def page(name):
+              d.get(home+'labs/'+name+'.html')
+              assert find('h1').text and d.execute_script('return document.documentElement.scrollWidth<=innerWidth')
+          try:
+              d.get(home)
+              w.until(lambda _:len(d.find_elements(By.CSS_SELECTOR,'.experiment-card'))==6)
+              click('a.experiment-card')
+              click('#language option[value="en"]')
+              text=find('#sample').text
+              find('#pad').send_keys(text)
+              w.until(lambda _:'100%' in find('#stats').text and not find('#finish').is_enabled())
+              print('PASS typing completion',flush=True)
+              page('lake')
+              for i in [2,1,3,4,5,6,7]: click('#marks button:nth-child('+str(i+1)+')')
+              click('#fly')
+              w.until(lambda _:d.find_elements(By.CSS_SELECTOR,'#gameSlot iframe'))
+              d.switch_to.frame(find('#gameSlot iframe'))
+              w.until(lambda _:d.execute_script("return typeof ready!=='undefined' && ready && playing && !!lap && shoreMarks[1].name==='THE NARROWS'"))
+              print('PASS custom route imported into live flight',flush=True)
+              d.switch_to.default_content()
+              page('rps')
+              for i in range(12): click('button[data-move="0"]')
+              assert not find('button[data-move="0"]').is_enabled() and '结束' in find('#status').text
+              print('PASS prediction match',flush=True)
+              page('pelican')
+              click('#start');click('[data-act="left"]');click('[data-act="jump"]')
+              w.until(lambda _:d.execute_script("return lane===0 && meters>0"))
+              click('#camera')
+              w.until(lambda _:d.execute_script("return !!stream && document.getElementById('preview').readyState>=2"))
+              click('#camera')
+              assert d.execute_script('return stream===null')
+              click('#pause')
+              assert '已暂停' in find('#status').text
+              print('PASS ride and local camera pipeline with a synthetic camera',flush=True)
+              page('metro')
+              click('#tick');assert '1 / 14' in find('#stats').text
+              print('PASS trains departed',flush=True)
+              page('paths')
+              for node in [1,4,7]:
+                  name=['码头','A','B','C','D','E','F','灯塔'][node]
+                  b=next(e for e in d.find_elements(By.CSS_SELECTOR,'#next button') if e.text.startswith(name+' '))
+                  b.click()
+              assert 'Dijkstra' in find('#answer').text
+              print('PASS completed route and cost comparison',flush=True)
+          finally:
+              d.quit()
+          PYTHON
