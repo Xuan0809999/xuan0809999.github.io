@@ -19,15 +19,15 @@ body{background:#1a223a;color:#f3e4d0}
 .pin,.toast{background:#20293def;color:#f6e2c6;box-shadow:0 2px 8px #15172959}
 .pin::after{border-top-color:#20293d}.pin.active{background:#edc28f;color:#272c3b}.pin.active::after{border-top-color:#edc28f}
 button:focus-visible,select:focus-visible,a:focus-visible{outline-color:#ffd9a3}
-</style></head><body>
-<main class="scene" aria-label="琥珀湖三维驾驶场景"><canvas id="world" tabindex="0" aria-label="驾驶越野车自由探索三维琥珀湖"></canvas><div id="labels" aria-hidden="true"></div>
+</style><link rel="stylesheet" href="cockpit.css"></head><body>
+<main class="scene" aria-label="琥珀湖三维驾驶场景"><canvas id="world" tabindex="0" aria-label="驾驶越野车自由探索三维琥珀湖"></canvas><canvas id="tyre-dust" aria-hidden="true"></canvas><div id="labels" aria-hidden="true"></div>
 <header class="header"><div class="identity panel"><a class="back" href="../" aria-label="返回作品集">‹</a><div><small>AMBER LAKE</small><h1>环湖自驾</h1></div></div>
 <div class="switches"><select id="nav" aria-label="选择目的地"><option value="">自由驾驶</option></select><button id="camera" title="切换镜头（C）">切到跟车</button><button id="help" aria-label="驾驶说明">操作</button></div></header>
 <div class="station panel"><span id="loc" class="loc" role="status">湖畔公路</span><strong id="workName">自由驾驶</strong><a id="workLink" class="btn" target="_blank" rel="noopener" hidden>打开作品</a><a id="stationExtra" class="station-extra" hidden></a><div class="guide">方向键 / WASD 驾驶 · 空格刹车 · 拖动画面环视</div></div>
 <div class="radar panel"><canvas id="minimap" width="180" height="138" aria-label="环湖路线和当前位置"></canvas><div class="gauges"><b><span id="speed" style="font:inherit;color:inherit">0</span> <span>km/h</span></b><span id="visited">已到 0 / 10 站</span></div></div>
 <div class="touchpad" aria-label="驾驶控制"><div><button data-key="left" aria-label="左转">◀</button><button data-key="right" aria-label="右转">▶</button></div><div><button data-key="down" aria-label="刹车或倒车">▼</button><button data-key="up" aria-label="加速">▲</button></div></div>
 <div id="toast" class="toast" role="status" hidden></div><div id="problem" class="statusmsg" hidden>此设备未能启动场景。<a href="../#featured">直接浏览作品</a></div></main>
-<dialog id="manual" class="help"><h2>驾驶说明</h2><p>用方向键或 WASD 加速、倒车和转向。手机用屏幕两侧的按钮。</p><p>空格刹车，C 换镜头，R 回到公路。拖动画面可以环视四周。</p><p>到路边的建筑旁即可打开作品。也可以从右上角选一个目的地，让小车自动开过去。</p><button id="rescue">回到公路</button> <button id="closeHelp">继续驾驶</button></dialog>
+<dialog id="manual" class="help"><h2>驾驶说明</h2><p>用方向键或 WASD 加速、倒车和转向。手机用屏幕两侧的按钮。</p><p>空格刹车，C 换镜头，R 回到公路。拖动画面可以环视四周。</p><p>到路边的建筑旁即可打开作品。也可以从右上角选一个目的地，让小车自动开过去。</p><div class="drive-settings"><button type="button" id="motor-sound" aria-pressed="false">声音 · 关</button><button type="button" id="screen-mode" hidden>全屏驾驶</button></div><button id="rescue">回到公路</button> <button id="closeHelp">继续驾驶</button></dialog>
 <script>// Materials are shared by the GPU and geometry so the canvas fallback uses the same palette.
 const materialNumber=new Map();
 function registerMaterial(id,inks){for(const ink of inks.split(" "))materialNumber.set(ink,id);}
@@ -39,6 +39,7 @@ registerMaterial(5,"30575e 83a7a4 416b70 638b88 759f99 9ab7a9 518583 517575 6389
 registerMaterial(6,"dfdac3 ece4c9 aeb9b2 aa9673 bdaa82 83918a");
 registerMaterial(7,"fbeac3 efa344 f5c985 ffd28a ffc079");
 registerMaterial(8,"a94630 ff744c");
+registerMaterial(10,"355d52 416c59 4c765d 61866a");
 // Building windows use warm glass after sundown; vehicle glass stays cool.
 registerMaterial(9,"638989 588284");
 function shadedBuffer(mesh){
@@ -58,8 +59,8 @@ vec3 duskSky(vec3 ray){
   float altitude=max(ray.y,0.);
   float horizon=exp(-altitude*7.8);
   float lastLight=pow(max(0.,az),5.)*exp(-abs(altitude-.016)*10.);
-  vec3 col=mix(vec3(.103,.133,.240),vec3(.440,.350,.455),horizon);
-  col+=vec3(.42,.17,.055)*lastLight;
+  vec3 col=mix(vec3(.077,.104,.185),vec3(.398,.306,.393),horizon);
+  col+=vec3(.49,.197,.064)*lastLight;
   vec2 coord=ray.xz*5.5+vec2(altitude*4.,altitude*33.);
   float wisps=texture2D(grain,coord*.15).r*.65+texture2D(grain,coord*.32).r*.35;
   float bands=exp(-pow((altitude-.090)/.050,2.))+ .58*exp(-pow((altitude-.21)/.038,2.));
@@ -103,6 +104,12 @@ float noiseAt(vec2 p){return texture2D(grain,p/128.).r;}
 void main(){
  float kind=floor(surface+.5);
  if(mirrored>.5&&(wp.y<.23||kind==1.))discard;
+ // A stippled cutaway keeps the truck visible through a foreground pine.
+ if(kind==10.&&mirrored<.5){vec2 toCar=driver.xy-eye.xz;
+   float along=dot(wp.xz-eye.xz,toCar)/max(dot(toCar,toCar),.001);
+   vec3 linePoint=mix(eye,vec3(driver.x,1.35+driver.w,driver.y),clamp(along,0.,1.));
+   if(along>0.&&along<.97&&distance(wp,linePoint)<2.35&&mod(gl_FragCoord.x+2.*gl_FragCoord.y,4.)>0.9)discard;
+ }
  vec3 n=normalize(normal+vec3(.000001)),view=normalize(eye-wp);
  if(wp.y<.19&&abs(n.y)>.9)n=vec3(0,1,0);
  float facing=max(dot(n,sun),0.),vis=lightAt(n),contact=1.;
@@ -406,7 +413,7 @@ function hangar(m){
  m.at(0,2.88,-2.63,0,()=>{m.at(0,0,0,0,()=>{m.taper(0,0,0,.49,.49,.05,"e3ba75",24);m.taper(0,.055,0,.39,.39,.04,"365c63",24);},Math.PI/2);
    m.box(0,-.015,-.115,.59,.092,.055,"eee3bd");m.box(0,-.17,-.12,.083,.36,.05,"eee3bd");});
  spar(m,[3.88,.1,1.55],[3.88,5.55,1.55],.065,beam,8);
- m.at(3.88,5.42,1.55,-1.04,()=>{for(let j=0;j<6;j++)m.at(j*.31,-j*.055,0,0,()=>m.taper(0,0,0,.24-j*.025,.218-j*.025,.32,j%2?"f1dab1":"be6742",9),0,-Math.PI/2-.16);});
+
  m.at(-3.00,.12,3.48,-.65,()=>seaplane(m));
 }
 function windowPane(m,x,y,z,w,h){
@@ -558,12 +565,12 @@ function trailCar(m,car){
   m.at(car.x,.12+car.y,car.z,car.h,()=>{
     for(const side of [-1,1])for(const z of [-trailAxleZ,trailAxleZ]){
       const yaw=z>0?-car.steer*.44:0;
-      m.at(side*trailAxleX,trailRadius,z,yaw,()=>m.at(0,0,0,0,()=>m.at(0,0,0,side*car.wheelAngle,()=>m.stamp(trailWheelModel)),0,-side*Math.PI/2));
+      m.at(side*trailAxleX,trailRadius+wheelLift[(side>0?2:0)+(z>0?1:0)],z,yaw,()=>m.at(0,0,0,0,()=>m.at(0,0,0,side*car.wheelAngle,()=>m.stamp(trailWheelModel)),0,-side*Math.PI/2));
     }
-    m.at(0,.78,0,0,()=>m.at(0,-.78,0,0,()=>{
+    m.at(0,.78+bodyLift,0,0,()=>m.at(0,-.78,0,0,()=>{
       m.stamp(trailBodyModel);
       if(car.brake)for(const side of [-1,1])m.box(side*.86,1.081,-1.975,.129,.214,.021,"ff744c");
-    }),car.pitch,car.roll);
+    }),car.pitch+tilt,car.roll+bank);
   });
 }
 
@@ -706,7 +713,7 @@ function landscape(){
    for(let j=0;j<4;j++){const xx=p[0]+(rnd()-.5)*.95,zz=p[1]+(rnd()-.5)*.55;
      m.tri([xx,.055,zz],[xx+.12,.055,zz-.04],[xx+.055,.28+rnd()*.15,zz+.06],"88a26b",true);
      if(i%4===0)m.disk(xx+.055,.28,zz+.05,.09,.08,j%2?"f5d982":"fbecd1",5);}}
- shoreDetails(m);stops3.forEach(s=>houseSite(m,s));
+ shoreDetails(m);addJetty(m);stops3.forEach(s=>houseSite(m,s));
  for(const a of [.58,1.11,2.27,4.47,5.63]){const t=a,p=onRoad(t);for(let j=0;j<5;j++){const q=onRoad(t+j*.035);m.box(q[0]*.925,0,q[1]*.925,.26,1.16,.26,"947753");if(j<4){const e=onRoad(t+(j+1)*.035),dx=(e[0]-q[0])*.925,dz=(e[1]-q[1])*.925;
    m.at((q[0]+e[0])*.4625,0,(q[1]+e[1])*.4625,Math.atan2(dx,dz),()=>{m.box(0,.72,0,.12,.12,Math.hypot(dx,dz),"ad8c63");});}}
   m.at(p[0]*.78,0,p[1]*.78,Math.atan2(-p[0],-p[1]),()=>pier(m,4));}
@@ -718,6 +725,116 @@ function landscape(){
 }
 
 let canvas3=document.querySelector("#world");const nav3=document.querySelector("#nav"),manual=document.querySelector("#manual"),camButton=document.querySelector("#camera");
+// Bridge planks, wheel contacts and tyre sounds share the same local coordinates.
+const bridgeCentre=onRoad(1.76), bridgeForward=onRoad(1.77);
+const bridgeYaw=Math.atan2(bridgeForward[0]-bridgeCentre[0],bridgeForward[1]-bridgeCentre[1]);
+const bridgeSin=Math.sin(bridgeYaw),bridgeCos=Math.cos(bridgeYaw);
+const wheelLift=[0,0,0,0],wheelSpeed=[0,0,0,0];
+const quietRide=window.matchMedia('(prefers-reduced-motion: reduce)');
+let bodyLift=0,bank=0,tilt=0;
+function bridgeHeight(x,z){
+ const dx=x-bridgeCentre[0],dz=z-bridgeCentre[1],along=dx*bridgeSin+dz*bridgeCos;
+ if(Math.abs(along)>5.45||Math.abs(dx*bridgeCos-dz*bridgeSin)>3.52)return 0;
+ const end=Math.min(1,(5.45-Math.abs(along))/1.5);
+ return end*(.42+.012*Math.cos(along*Math.PI*4));
+}
+function addJetty(m){
+ m.at(...[bridgeCentre[0],0,bridgeCentre[1],bridgeYaw],()=>{
+   for(let i=-10;i<=10;i++){
+     const z=i*.50,top=Math.min(1,(5.45-Math.abs(z))/1.5)*.42;
+     m.box(0,.14,z,7.1,top,.487,["9f8066","b29476","a98a69","ae8f72"][(i+10)%4]);
+   }
+   for(const side of [-1,1])for(const z of [-4,-2,0,2,4]){
+     m.box(side*3.74,.05,z,.20,1.17,.20,"796554");
+     m.taper(side*3.74,1.21,z,.17,.17,.06,"ccbc9c",8);
+     if(z<4)spar(m,[side*3.74,1.02,z],[side*3.74,.96,z+2],.066,"796554");
+     if(Math.abs(z)===4)m.taper(side*3.74,1.27,z,.12,.09,.16,"ffc079",8);
+   }
+ });
+ // A timber boathouse on stilts, with lit windows facing the water.
+ const bay=onRoad(2.61);
+ m.at(bay[0]*.79,.12,bay[1]*.79,1.9,()=>{
+   for(const x of [-2,2])for(const z of [-2.8,2.8])m.box(x,-.12,z,.23,.87,.23,"796554");
+   m.box(0,.51,0,5.5,.20,7.0,"896f55");
+   m.at(0,.70,-.48,0,()=>cabin(m,4.2,4.8,2.25,"907761","50635f"));
+   for(const x of [-.82,.82])m.box(x,1.59,1.95,.68,.65,.09,"588284");
+   for(let k=0;k<5;k++)m.box(1.72,.70,2.4+k*.53,1.18,.10,.50,"ae8f72");
+ });
+ // Shoreline reed beds break up the land/water seam.
+ for(let j=0;j<23;j++){const a=.32+j*.233,r=ring(a);for(let k=0;k<4;k++){
+   const bx=Math.cos(a)*39*r*.985+k*.071,bz=Math.sin(a)*26*r*.985+Math.sin(k+j)*.16;
+   m.tri([bx-.044,.10,bz],[bx+.038,.10,bz],[bx+.12,.48+(k%3)*.12,bz+.08],"738666");
+ }}
+}
+function updateWheelRide(dt,roadDistance){
+ const s=Math.sin(car.h),c=Math.cos(car.h);let index=0;
+ for(const side of [-1,1])for(const axle of [-1,1]){
+   const x=car.x+side*trailAxleX*c+axle*trailAxleZ*s,z=car.z-side*trailAxleX*s+axle*trailAxleZ*c;
+   const deck=bridgeHeight(x,z),rough=roadDistance>3.25?.060:.013;
+   const height=deck||rough*(.9+.45*Math.sin(x*1.35+z*.56)+.42*Math.cos(z*1.71-x*.35));
+   const target=car.y>.20?0:height;
+   wheelSpeed[index]+=(105*(target-wheelLift[index])-17*wheelSpeed[index])*dt;
+   wheelLift[index]+=wheelSpeed[index]*dt;index++;
+ }
+ const ease=1-Math.exp(-dt*9);
+ bodyLift+=((wheelLift[0]+wheelLift[1]+wheelLift[2]+wheelLift[3])/4-bodyLift)*ease;
+ tilt+=((wheelLift[1]+wheelLift[3]-wheelLift[0]-wheelLift[2])/(4*trailAxleZ)-tilt)*ease;
+ bank+=((wheelLift[2]+wheelLift[3]-wheelLift[0]-wheelLift[1])/(4*trailAxleX)-bank)*ease;
+}
+function drawWindsock(m){
+ const s=stops3[0];m.at(s.bx,0,s.bz,s.yaw,()=>m.at(3.88,5.42,1.55,-1.04+.18*Math.sin(clock*1.4),()=>{
+   for(let j=0;j<6;j++)m.at(j*.30,-j*.055+.037*j*Math.sin(clock*3-j*.6),0,0,
+      ()=>m.taper(0,0,0,.24-j*.025,.218-j*.025,.32,j%2?"f1dab1":"be6742",9),0,-Math.PI/2-.12);
+ }));
+}
+const trailDust=[],dustLayer=document.querySelector('#tyre-dust'),dustContext=dustLayer.getContext('2d');
+let nextPuff=0,dustVisible=false;
+function wheelDust(dt,roadDistance){
+ nextPuff-=dt;for(let i=trailDust.length-1;i>=0;i--){const p=trailDust[i];p.age+=dt;if(p.age>.61)trailDust.splice(i,1);}
+ if(quietRide.matches||!dustContext||car.y>.18||Math.abs(car.v)<5||nextPuff>0||bridgeHeight(car.x,car.z)>.05)return;
+ nextPuff=roadDistance>3.3?.062:.14;
+ const c=Math.cos(car.h),s=Math.sin(car.h),side=Math.random()<.5?-1:1;
+ trailDust.push({x:car.x+side*c-1.55*s,z:car.z-side*s-1.55*c,age:0,grass:roadDistance>3.3});
+}
+function drawDust(camera,w,h){
+ if(!dustContext||(!trailDust.length&&!dustVisible))return;
+ if(dustLayer.width!==Math.round(w)||dustLayer.height!==Math.round(h)){dustLayer.width=Math.round(w);dustLayer.height=Math.round(h);}
+ const ctx=dustContext;ctx.clearRect(0,0,w,h);dustVisible=trailDust.length>0;
+ for(const p of trailDust){const pt=project(camera,[p.x,.30+p.age*.74,p.z]);if(!pt)continue;
+   const r=Math.min(30,(.13+p.age*.57)*h*camera.scale/(2*pt[2]));if(r<.35)continue;
+   const glow=ctx.createRadialGradient(pt[0],pt[1],0,pt[0],pt[1],r);
+   glow.addColorStop(0,'rgba(206,178,147,'+((1-p.age/.61)*(p.grass?.27:.14))+')');glow.addColorStop(1,'rgba(206,178,147,0)');
+   ctx.fillStyle=glow;ctx.fillRect(pt[0]-r,pt[1]-r,r*2,r*2);
+ }
+}
+const screenMode=document.querySelector('#screen-mode');
+if(document.documentElement.requestFullscreen){screenMode.hidden=false;screenMode.onclick=async()=>{try{
+ if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();
+ }catch{screenMode.hidden=true;}};
+ document.addEventListener('fullscreenchange',()=>screenMode.textContent=document.fullscreenElement?'退出全屏':'全屏驾驶');}
+const soundButton=document.querySelector('#motor-sound');let audioRig=null,soundOn=false,soundNext=0;
+function makeMotor(){
+ const Audio=window.AudioContext||window.webkitAudioContext;if(!Audio)return null;
+ const ctx=new Audio(),engine=ctx.createOscillator(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();
+ engine.type='sawtooth';filter.type='lowpass';filter.frequency.value=115;gain.gain.value=0;
+ engine.connect(filter);filter.connect(gain);gain.connect(ctx.destination);engine.start();
+ return {ctx,engine,filter,gain};
+}
+soundButton.addEventListener('click',async()=>{
+ try{audioRig=audioRig||makeMotor();if(!audioRig)throw Error();const next=!soundOn;
+ if(next)await audioRig.ctx.resume();soundOn=next;soundButton.setAttribute('aria-pressed',String(next));soundButton.textContent=next?'声音 · 开':'声音 · 关';
+ if(!next)audioRig.gain.gain.setTargetAtTime(0,audioRig.ctx.currentTime,.04);soundNext=0;
+ }catch{soundOn=false;soundButton.disabled=true;soundButton.textContent='声音不可用';}
+});
+function motorMix(dt){
+ if(!audioRig||!soundOn)return;soundNext-=dt;if(soundNext>0)return;soundNext=.045;
+ const {ctx,engine,filter,gain}=audioRig,t=ctx.currentTime,speed=Math.abs(car.v),deck=bridgeHeight(car.x,car.z)>.08;
+ const gear=Math.floor(speed/7);engine.frequency.setTargetAtTime(34+speed*3.1-gear*8,t,.09);filter.frequency.setTargetAtTime(110+speed*9,t,.09);
+ const thrum=deck&&speed>2?.014*(.5+.5*Math.cos(car.wheelAngle*7)):0;
+ gain.gain.setTargetAtTime(document.hidden||manual.open?0:.028+speed*.00095+thrum,t,.055);
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&audioRig)audioRig.gain.gain.setTargetAtTime(0,audioRig.ctx.currentTime,.04);});
+
 const staticModel=landscape(),nearText=document.querySelector("#loc"),workName=document.querySelector("#workName"),projectLink=document.querySelector("#workLink"),speedText=document.querySelector("#speed");
 const keysDown=new Set(),visitedSet=new Set();
 try{const saved=JSON.parse(sessionStorage.getItem("amber-lake-stops-v1")||"[]");if(Array.isArray(saved))for(const s of saved)if(stops3.some(p=>p.id===s))visitedSet.add(s);}catch(e){}
@@ -727,7 +844,7 @@ let mode=0,orbit=1.34,dragOffset=0,zoom=1,route=null,lastTick=0,clock=0,camReady
 function setText(el,text){if(el.textContent!==text)el.textContent=text;}
 function toast(s){const t=document.querySelector("#toast");t.textContent=s;t.hidden=false;toastEnd=clock+2.25;}
 function switchCam(){mode=(mode+1)%3;camButton.textContent=cameraModes[mode];dragOffset=0;toast(["斜视镜头","跟车镜头","俯瞰镜头"][mode]);}
-function putOnRoad(k){const p=track[k],q=track[(k+1)%track.length];Object.assign(car,{x:p[0],z:p[1],h:Math.atan2(q[0]-p[0],q[1]-p[1]),v:0,vx:0,vz:0,y:0,vy:0,roll:0,pitch:0,steer:0});route=null;nav3.value="";camReady=false;}
+function putOnRoad(k){const p=track[k],q=track[(k+1)%track.length];Object.assign(car,{x:p[0],z:p[1],h:Math.atan2(q[0]-p[0],q[1]-p[1]),v:0,vx:0,vz:0,y:0,vy:0,roll:0,pitch:0,steer:0});wheelLift.fill(0);wheelSpeed.fill(0);bodyLift=tilt=bank=0;trailDust.length=0;route=null;nav3.value="";camReady=false;}
 function resetCar(){putOnRoad(nearestRoad(car.x,car.z).k);toast("已回到湖岸公路");}
 function haltNavigation(){if(route){route=null;nav3.value="";car.v=0;car.vx=0;car.vz=0;}}
 function setRoute(index){
@@ -763,6 +880,7 @@ function advance(dt){
    if(car.y<1.1)for(const s of barriers){const dx=x-s.x,dz=z-s.z,d=Math.hypot(dx,dz),rr=s.r+.78;if(d<rr&&d>.001){x=s.x+dx/d*rr;z=s.z+dz/d*rr;car.v*=.81;}}
    car.x=x;car.z=z;
  }
+ updateWheelRide(dt,road.d);wheelDust(dt,road.d);
  const travel=(car.x-startX)*Math.sin(car.h)+(car.z-startZ)*Math.cos(car.h);
  car.wheelAngle=(car.wheelAngle+travel/trailRadius)%TAU;
  let floor=0;for(const ramp of ramps){const offset=yawPoint(car.x-ramp.x,car.z-ramp.z,-ramp.yaw);if(Math.abs(offset[0])<1.12&&Math.abs(offset[1])<2.27)floor=Math.max(floor,(offset[1]+2.2)/4.4*1.05);}
@@ -775,13 +893,14 @@ function advance(dt){
    p.x+=p.vx*dt;p.z+=p.vz*dt;p.vx*=Math.exp(-3*dt);p.vz*=Math.exp(-3*dt);if(onWater(p.x,p.z,.03)){p.vx*=-.4;p.vz*=-.4;}}
 }
 function cameraAt(dt,w,h){
- const heading=mode===1?car.h+Math.PI:orbit;const a=heading+dragOffset,portrait=w/h<.85,dist=(mode===2?17:mode===1?10:19.5)*(portrait?1.18:1)*zoom;
- const tx=car.x+Math.sin(car.h)*(mode===1?2.9:1.0),tz=car.z+Math.cos(car.h)*(mode===1?2.9:1.0);
+ const heading=mode===1?car.h+Math.PI:orbit;const a=heading+dragOffset,portrait=w/h<.85,dist=(mode===2?17:mode===1?10:19.5)*(portrait?1.18:1)*zoom*(1+(quietRide.matches?0:.105)*Math.min(1,Math.abs(car.v)/21));
+ const lead=(mode===1?2.9:1)+(quietRide.matches?0:clamp(car.v/15,-.45,1.2));
+ const tx=car.x+Math.sin(car.h)*lead,tz=car.z+Math.cos(car.h)*lead;
  const x=car.x+Math.sin(a)*dist,z=car.z+Math.cos(a)*dist,y=(mode===2?26:mode===1?5.2:6.7)*(portrait?1.09:1)*zoom+car.y*.5;
  const alpha=camReady?1-Math.exp(-dt*(mode===1?4.6:6.0)):1;camReady=true;
  for(const [k,v] of [["x",x],["y",y],["z",z],["tx",tx],["tz",tz]])cam[k]=mix(cam[k],v,alpha);
  return makeCamera([cam.x,cam.y,cam.z],[cam.tx,car.y*.44+(mode===0?1.64:1.0),cam.tz],w,h);}
-function drawActors(){const m=new Mesh();m.hardware=renderer&&renderer.kind==='WebGL';trailCar(m,car);for(const p of props)m.at(p.x,.17,p.z,p.spin,()=>{m.box(0,0,0,.62,.09,.62,"8d794f");m.taper(0,.08,0,.25,.048,.72,"dd7843",7);m.taper(0,.45,0,.155,.125,.14,"f4e7bc",7);},p.tilt*.72);
+function drawActors(){const m=new Mesh();m.hardware=renderer&&renderer.kind==='WebGL';drawWindsock(m);trailCar(m,car);for(const p of props)m.at(p.x,.17,p.z,p.spin,()=>{m.box(0,0,0,.62,.09,.62,"8d794f");m.taper(0,.08,0,.25,.048,.72,"dd7843",7);m.taper(0,.45,0,.155,.125,.14,"f4e7bc",7);},p.tilt*.72);
  const a=clock*.080+.3,x=33*Math.cos(a),z=19*Math.sin(a);m.at(x,8.7+.4*Math.sin(a*2),z,Math.atan2(-33*Math.sin(a),19*Math.cos(a)),()=>seaplane(m),.01,.14);
  const phase=clock*.18; m.at(-16+Math.sin(phase*.3)*2,13+Math.sin(phase)*.6,-22,0,()=>{m.taper(0,0,0,.42,1.65,1.65,"dba363",12);m.taper(0,1.65,0,1.65,1.48,.9,"f2cf84",12);m.taper(0,2.55,0,1.48,.38,.82,"dc986b",12);m.box(0,-1,0,.62,.45,.62,"967452");for(const t of [-.26,.26])m.box(t,-.56,0,.055,.65,.055,"8e805e");});return m;}
 const radar=document.querySelector("#minimap"),rc=radar.getContext("2d");
@@ -812,7 +931,7 @@ function frame(ts){requestAnimationFrame(frame);if(!renderer||document.hidden)re
  const ratio=renderer.kind==="WebGL"?Math.min(1.65,window.devicePixelRatio||1):Math.min(1,1000/w);
  if(canvas3.width!==Math.round(w*ratio)||canvas3.height!==Math.round(h*ratio)){canvas3.width=Math.round(w*ratio);canvas3.height=Math.round(h*ratio);}
  if(!manual.open){clock+=dt;const steps=Math.ceil(dt/.019);for(let k=0;k<steps;k++)advance(dt/steps);}
- const camera=cameraAt(dt,w,h);renderer.render(camera,drawActors(),clock,car);ui(camera);}
-if(renderer&&canvas3.dataset){canvas3.dataset.renderer=renderer.kind;canvas3.dataset.edition="amber-blue-hour";}
+ const camera=cameraAt(dt,w,h);renderer.render(camera,drawActors(),clock,car);drawDust(camera,w,h);motorMix(dt);ui(camera);}
+if(renderer&&canvas3.dataset){canvas3.dataset.renderer=renderer.kind;canvas3.dataset.edition="lakeside-studio";}
 if(renderer)requestAnimationFrame(frame);canvas3.addEventListener("webglcontextlost",e=>{e.preventDefault();renderer=null;const m=document.querySelector("#problem");m.hidden=false;});
 </script></body></html>

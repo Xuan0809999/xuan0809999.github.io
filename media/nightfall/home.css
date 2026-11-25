@@ -1,0 +1,52 @@
+/* Lake studio. Copper is reserved for wayfinding and interactive emphasis. */
+body.afterglow{
+ --night:#10161b;--raised:#1a2229;--rule:#39424a;--ivory:#f4f0e6;--silver:#bdc7c9;--copper:#e8ad7d;
+ background:var(--night);color:var(--ivory);margin:0;
+ font:16px/1.65 system-ui,"PingFang SC","Microsoft YaHei",sans-serif
+}
+.afterglow .container{width:min(1240px,calc(100% - clamp(36px,9vw,136px)));margin:auto}
+.afterglow a:focus-visible,.afterglow button:focus-visible{outline:3px solid #f9c590;outline-offset:5px}
+.skip-site{position:absolute;z-index:8;left:12px;top:5px;transform:translateY(-180%);padding:8px 16px;color:#10161b;background:#ffddad}
+.skip-site:focus{transform:none}
+.afterglow .lake-nav{display:block;background:#11171b;border-bottom:1px solid #333b40;padding:0!important}
+.lake-nav .container,.lake-foot .container{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.lake-nav .container{min-height:66px}.signature{color:#efeae0;text-decoration:none;font:italic 600 22px/1.2 Georgia,serif;letter-spacing:-.045em}.signature span,.front-text h1 span{color:var(--copper)}
+.lake-nav nav{display:flex;gap:clamp(13px,2.7vw,38px)}.lake-nav nav a{min-height:44px;display:inline-flex;align-items:center;font-size:14px;color:#ced2cf;text-decoration:none}.lake-nav nav a:hover,.lake-foot a:hover{color:var(--copper)}
+.lake-front{isolation:isolate;position:relative;display:grid;align-items:center;min-height:clamp(430px,41vw,660px);overflow:hidden;background:#18212c;border-bottom:1px solid var(--rule)}
+.lake-front picture,.lake-front picture img,.hero-scrim{position:absolute;inset:0;width:100%;height:100%}
+.lake-front picture{z-index:-2}.lake-front picture img{object-fit:cover;object-position:58% 54%}.hero-scrim{z-index:-1;background:linear-gradient(90deg,rgba(11,18,23,.86),rgba(11,18,23,.68) 30%,rgba(11,18,23,.17) 57%,transparent 76%),linear-gradient(0deg,rgba(12,18,21,.40),transparent 23%)}
+.front-text{max-width:490px;padding:68px 0}.front-text .overline,.work-copy small,.flight-copy small,.course-card small{color:var(--copper);font:650 12px/1.5 ui-monospace,Consolas,"Microsoft YaHei",monospace;letter-spacing:.13em}
+.front-text h1{margin:14px 0 18px;color:var(--ivory);font:600 clamp(48px,5.2vw,80px)/1.16 "Songti SC","Noto Serif CJK SC","SimSun",Georgia,serif;letter-spacing:-.06em}
+.front-text h1 span{display:inline;margin:0;font:inherit}.front-text .lede{max-width:29em;font-size:clamp(15px,1.12vw,18px);line-height:1.85;color:#e0e2dc;text-wrap:pretty}
+.front-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}.front-actions a,.flight-copy button{display:inline-flex;align-items:center;justify-content:center;gap:16px;padding:11px 19px;min-height:46px;border-radius:4px;font-weight:650;font-size:15px;text-decoration:none;border:1px solid transparent;color:#1e1a18;background:#edb889}
+.front-actions a:nth-child(2){color:#f2eee6;border-color:#899298;background:#10171bc9}.front-actions a:hover,.flight-copy button:hover{filter:brightness(1.1)}
+.afterglow .collection,.afterglow #featured,.afterglow #experiments{padding:clamp(36px,4.5vw,68px) 0 0;margin:0}
+.afterglow .collection>h2,.afterglow #experiments>h2{display:block;font:620 clamp(25px,2.6vw,40px)/1.25 "Songti SC","SimSun",Georgia,serif;color:var(--ivory);margin:0 0 20px;letter-spacing:-.03em}
+.afterglow .collection>h2:before,.afterglow .collection>h2:after{display:none!important}
+.work-grid,.specimen-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(13px,1.6vw,24px)}
+.work-card,.specimen{min-width:0;color:inherit;text-decoration:none;overflow:hidden;border-radius:7px}
+.work-card{display:flex;flex-direction:column;background:var(--raised);border:1px solid var(--rule)}
+.work-art,.specimen-photo,.flight-image{overflow:hidden}.work-art img,.specimen img,.flight-image img,.course-card img{width:100%;height:100%;display:block;object-fit:cover}
+.work-art{aspect-ratio:2.17}.work-card img,.specimen img{transition:transform .25s ease}
+.work-copy{padding:18px 18px 21px}.work-copy h3,.specimen h3{font-family:inherit;color:var(--ivory);font-weight:650;letter-spacing:0;line-height:1.45}
+.work-copy h3{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:clamp(19px,1.55vw,25px);margin:5px 0 6px}.work-copy h3 span,.course-card h2 span{color:var(--copper);font-family:system-ui;font-weight:400;font-size:.77em}
+.work-copy p,.specimen p,.flight-copy p,.course-card p{font-size:14px;line-height:1.65;color:var(--silver);margin:0}
+.specimen-grid{gap:13px}.specimen{display:grid;align-items:center;grid-template-columns:clamp(80px,7.6vw,112px) minmax(0,1fr);gap:14px;padding:0 14px 0 0;border:1px solid #313a43;background:#151d23}
+.specimen-photo{aspect-ratio:1;height:100%;min-height:95px}.specimen h3{font-size:16px;margin:0 0 4px}.specimen p{font-size:13px}
+@media(hover:hover){.work-card:hover,.specimen:hover{border-color:#b48968}.work-card:hover img,.specimen:hover img{transform:scale(1.035)}}
+.afterglow .course-card{margin:clamp(36px,5vw,78px) 0 0!important;padding:0!important;border:0!important;display:block!important}
+.course-card>a{color:var(--ivory);text-decoration:none;display:grid;grid-template-columns:minmax(150px,.75fr) 1fr;align-items:center;gap:clamp(18px,3vw,50px);background:var(--raised);border:1px solid var(--rule);border-radius:7px;overflow:hidden}
+.course-card img{max-height:205px}.afterglow .course-card h2,.flight-copy h2{margin:5px 0 7px;font:600 clamp(23px,2.6vw,38px)/1.25 Georgia,"Songti SC","SimSun",serif;color:var(--ivory)}
+.afterglow #patrol.flight-box{margin:32px 0;width:100%;background:#1b2329;color:var(--ivory);border:1px solid var(--rule);border-radius:7px;overflow:hidden}
+#patrolCover{display:grid;grid-template-columns:1.28fr 1fr;align-items:stretch}.flight-image img{min-height:220px}.flight-copy{padding:clamp(20px,3vw,43px)}.flight-copy button{margin-top:20px}.flight-copy>a{margin-left:15px;font-size:14px;color:var(--silver)}
+.afterglow #one-second{border-radius:7px;color:#22352f;border-color:#87998f;background:#e7e7df}
+.afterglow section.content:not(#one-second){border-color:var(--rule);color:var(--silver);padding-block:30px}
+.afterglow section.content:not(#one-second) h2,.afterglow section.content:not(#one-second) strong,.afterglow .notes dt{color:var(--ivory)}
+.afterglow .content .eyebrow{color:var(--copper)}.afterglow :is(.copy,.notes,.gallery) :is(p,dd,figcaption){color:var(--silver)}
+.afterglow .proof div,.afterglow .gallery figure{background:var(--raised);border-color:var(--rule)}.afterglow .proof b,.afterglow .proof span,.afterglow details.ref a{color:var(--copper)}
+.afterglow .lake-foot{background:#0e1418;border-top:1px solid var(--rule);color:var(--silver);font-size:14px;padding:21px 0;margin:25px 0 0}.lake-foot a{color:inherit}
+@media(max-width:940px){.specimen-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.front-text{max-width:435px}}
+@media(max-width:700px){.work-grid{grid-template-columns:1fr}.work-card{display:grid;grid-template-columns:.83fr 1fr}.work-art{aspect-ratio:auto}.work-copy{padding:15px}.work-art img{min-height:130px}.specimen-grid{grid-template-columns:1fr 1fr}.specimen{grid-template-columns:68px 1fr;padding-right:8px;gap:9px}.specimen-photo{min-height:90px}.specimen p{display:none}.lake-nav .container{min-height:54px}.course-card>a{gap:16px}.course-card>a>div{padding-right:12px}#patrolCover{grid-template-columns:1fr}.flight-image img{min-height:0;max-height:230px}}
+@media(max-width:620px){.lake-front{min-height:565px;align-items:end}.lake-front picture img{object-position:58% 42%}.hero-scrim{background:linear-gradient(to top,#10171bf7 2%,#10171be8 18%,#10171b9c 40%,#10171b12 66%,transparent)}.front-text{padding:140px 0 31px}.front-text h1{font-size:clamp(44px,10vw,57px);margin:8px 0 9px}.front-actions{margin-top:18px}.front-text .lede{font-size:15px}.afterglow .collection>h2,.afterglow #experiments>h2{margin-bottom:14px}.course-card>a{grid-template-columns:1fr;gap:0}.course-card>a>div{padding:16px}.course-card img{max-height:160px}}
+@media(max-width:470px){.specimen-grid{grid-template-columns:1fr}.specimen{grid-template-columns:83px 1fr;gap:14px;padding-right:12px}.specimen-photo{min-height:83px}.specimen p{display:block}.signature{font-size:20px}.lake-nav nav{gap:13px}.lake-nav nav a{font-size:13px}.work-card{grid-template-columns:.73fr 1fr}.work-copy h3{font-size:19px}.work-copy p{font-size:13px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.work-card img,.specimen img{transition:none}.work-card:hover img,.specimen:hover img{transform:none}}

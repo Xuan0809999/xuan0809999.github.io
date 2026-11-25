@@ -1,0 +1,11 @@
+#tyre-dust{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.panel,.help{background:rgba(19,26,34,.94);border-color:#525e67;border-radius:9px}
+.identity h1{font-size:20px;letter-spacing:.02em}.identity small{letter-spacing:.18em}
+.station .loc,.identity small,.gauges span{color:#dfbc98}
+.switches :is(select,button),.help button,.touchpad button{border-radius:6px;background:#1c2935;color:#f0ebe1;border-color:#64717a}
+.back,.station a.btn{background:#e6b586;color:#20252b;border-color:#e6b586}
+button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #ffd49c;outline-offset:3px}
+.drive-settings{border-block:1px solid #47535d;padding:3px 0 12px;margin-top:12px;display:flex;gap:8px}
+@media(pointer:coarse),(max-width:720px){.identity h1{font-size:16px}.touchpad button{min-height:44px}.station{max-width:calc(100% - 113px)}.switches{max-width:65%}.identity small{letter-spacing:.08em}}
+@media(max-width:390px){.switches select{max-width:81px}.switches{gap:3px}.switches button{padding-inline:6px}.identity{gap:3px}.header{gap:3px}}
+@media(max-height:490px){.station,.radar{bottom:57px}.touchpad button{min-height:40px}}
