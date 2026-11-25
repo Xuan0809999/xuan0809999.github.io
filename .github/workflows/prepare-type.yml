@@ -1,0 +1,14 @@
+name: Prepare self-hosted portfolio type
+on: [push]
+permissions:
+  contents: read
+jobs:
+  typeface:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        family: [Sans, Serif]
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m pip install --quiet --disable-pip-version-check fonttools brotli
+      - run: python .github/checks/prepare-type.py ${{ matrix.family }}
