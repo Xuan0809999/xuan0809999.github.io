@@ -24,6 +24,7 @@ const origin = 'http://127.0.0.1:8181';
       assert.equal(await page.locator('#secondPad').getAttribute('aria-pressed'),'false');
       await page.locator('#playPatrol').click();
       assert.equal(await page.locator('#gameSlot iframe').count(),1);
+      await page.frameLocator('#gameSlot iframe').locator('canvas').first().waitFor({state:'attached'});
       await page.locator('#closePatrol').click();
       const links=await page.locator('.specimen,.work-card').evaluateAll(a=>a.map(el=>el.getAttribute('href')).filter(h=>h.startsWith('labs/')));
       for(const url of links){
