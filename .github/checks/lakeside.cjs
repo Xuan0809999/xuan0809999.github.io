@@ -1,11 +1,9 @@
 const { chromium } = require('playwright-core');
 const assert = require('node:assert/strict');
-async function visualSample(page,label){
- const capture=await page.screenshot({type:'jpeg',quality:68});
- const b64=await page.evaluate(async src=>{const im=new Image();im.src=src;await im.decode();
- const c=document.createElement('canvas');c.width=Math.min(600,im.width);c.height=Math.round(im.height*c.width/im.width);
- c.getContext('2d').drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.62).split(',')[1];},'data:image/jpeg;base64,'+capture.toString('base64'));
- for(let i=0;i<b64.length;i+=1800)console.log('LAKE_IMAGE '+label+' '+b64.slice(i,i+1800));
+async function sample(page,key){
+  const buf=await page.screenshot({type:'jpeg',quality:73});
+  const img=await page.evaluate(async b=>{const im=new Image();im.src='data:image/jpeg;base64,'+b;await im.decode();const can=document.createElement('canvas');can.width=Math.min(650,im.width);can.height=Math.round(can.width*im.height/im.width);can.getContext('2d').drawImage(im,0,0,can.width,can.height);return can.toDataURL('image/jpeg',.68).split(',')[1];},buf.toString('base64'));
+  for(let i=0;i<img.length;i+=1800)console.log('LAKE_IMAGE '+key+' '+img.slice(i,i+1800));
 }
 const origin = 'http://127.0.0.1:8181';
 (async () => {
@@ -22,10 +20,15 @@ const origin = 'http://127.0.0.1:8181';
       }
       await open('/');
       assert.equal(await page.locator('.specimen').count(),9);
+      assert.ok(await page.evaluate(async()=>{
+        const body=await document.fonts.load('400 16px "Lake Sans"','直接浏览作品');
+        const heading=await document.fonts.load('600 48px "Lake Display"','湖畔实验室');
+        return body.length>0 && heading.length>0;
+      }),'Chinese typefaces must load');
       const pics=await page.locator('.work-card img,.specimen img').evaluateAll(async imgs=>Promise.all(imgs.map(async im=>{im.loading='eager';await im.decode();return im.naturalWidth})));
       assert.ok(pics.every(x=>x>300));
       await page.screenshot({path:'/tmp/lake-review-'+name+'.jpg',type:'jpeg'});
-      if(name!=='landscape')await visualSample(page,'home-'+name);
+      if(name!=='landscape')await sample(page,'home-'+name);
       await page.locator('#secondPad').click();
       assert.equal(await page.locator('#secondPad').getAttribute('aria-pressed'),'true');
       await page.locator('#secondPad').click();
@@ -53,7 +56,7 @@ const origin = 'http://127.0.0.1:8181';
       await page.waitForFunction(()=>Boolean(document.querySelector('#world').dataset.renderer),{timeout:20000});
       await page.waitForFunction(()=>clock>0.1);
       await page.screenshot({path:'/tmp/lake-review-drive-'+name+'.jpg',type:'jpeg'});
-      if(name!=='landscape')await visualSample(page,'drive-'+name);
+      if(name==='desktop')await sample(page,'drive-desktop');
       await page.locator('#camera').click();await page.locator('#help').click();
       await page.locator('#motor-sound').click();assert.equal(await page.locator('#motor-sound').getAttribute('aria-pressed'),'true');
       await page.locator('#motor-sound').click();await page.locator('#closeHelp').click();
