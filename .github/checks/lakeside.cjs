@@ -15,6 +15,11 @@ const origin = 'http://127.0.0.1:8181';
       }
       await open('/');
       assert.equal(await page.locator('.specimen').count(),9);
+      assert.ok(await page.evaluate(async()=>{
+        const body=await document.fonts.load('400 16px "Lake Sans"','直接浏览作品');
+        const heading=await document.fonts.load('600 48px "Lake Display"','湖畔实验室');
+        return body.length>0 && heading.length>0;
+      }),'Chinese typefaces must load');
       const pics=await page.locator('.work-card img,.specimen img').evaluateAll(async imgs=>Promise.all(imgs.map(async im=>{im.loading='eager';await im.decode();return im.naturalWidth})));
       assert.ok(pics.every(x=>x>300));
       await page.screenshot({path:'/tmp/lake-review-'+name+'.jpg',type:'jpeg'});

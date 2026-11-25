@@ -1,0 +1,23 @@
+/* CJK subsets are served by the portfolio so a first visit needs no font service. */
+@font-face{
+ font-family:"Lake Sans";src:url("lake-sans.woff2") format("woff2");font-style:normal;font-weight:400;font-display:swap;
+ unicode-range:U+2E80-9FFF,U+FF00-FFEF
+}
+@font-face{
+ font-family:"Lake Display";src:url("lake-display.woff2") format("woff2");font-style:normal;font-weight:600 800;font-display:swap;
+ unicode-range:U+2E80-9FFF,U+FF00-FFEF
+}
+html:lang(zh) body,html:lang(zh) body :where(p,a,span,b,em,strong,small,dt,dd,li,label,legend,output,button,input,select,textarea,option,summary,figcaption,th,td,div,h1,h2,h3,h4){
+ font-family:"Lake Sans",system-ui,"Microsoft YaHei","PingFang SC",sans-serif!important
+}
+html:lang(zh) body :is(h1,h2),html:lang(zh) .front-text h1 span{
+ font-family:"Lake Display","Lake Sans",Georgia,"Songti SC","SimSun",serif!important
+}
+html:lang(zh) body :is(.signature,.signature span,.studio-brand strong,.brand,.work-copy .arrow),html:lang(zh) .gauges b{
+ font-family:Georgia,"Lake Sans",serif!important
+}
+html:lang(zh) body :is(.overline,.work-copy small,.flight-copy small,.course-card small,.identity small,.eyebrow){
+ font-family:ui-monospace,Consolas,"Lake Sans",monospace!important
+}
+html:lang(zh) .front-text h1{text-shadow:0 2px 16px #10182033}
+@media(max-width:500px){.scene .station{max-width:calc(100% - 147px)}.scene .radar{max-width:128px}}
