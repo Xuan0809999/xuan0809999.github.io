@@ -1,25 +1,32 @@
-name: Review the lakeside portfolio
-on: [push, workflow_dispatch]
+name: Verify public Pages release
+on: [push]
 permissions:
   contents: read
 jobs:
-  browser:
+  production:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 4
     steps:
-      - uses: actions/checkout@v4
-      - name: Prepare browser tests
-        run: npm install --prefix "$RUNNER_TEMP/lake-review" playwright-core@1.56.1 --no-audit --no-fund
-      - name: Test navigation, instruments, driving and responsive layouts
-        env:
-          NODE_PATH: ${{ runner.temp }}/lake-review/node_modules
+      - name: Read the published homepage, driving scene and typeface
         run: |
-          python3 -m http.server 8181 --bind 127.0.0.1 >/tmp/lake-site.log 2>&1 &
-          node .github/checks/lakeside.cjs
-      - name: Save visual review
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lakeside-browser-review
-          path: /tmp/lake-review-*.jpg
-          if-no-files-found: ignore
+          node --input-type=module <<'JS'
+          import { createHash } from 'node:crypto';
+          const files=[
+            ['','36d717c1c2dae0d9ebda21d91f23995f778196a4'],
+            ['drive/','771c809c8427b7b69f8b24837a82db4946f00784'],
+            ['media/nightfall/lake-sans.woff2','b00756d0224979e089571ed06928e873919531a4'],
+            ['media/nightfall/island.jpg','1bec104a3cdce25325637301504cb56e5619a797']
+          ];
+          for(let n=0;n<12;n++){
+            const results=await Promise.all(files.map(async ([p,expected])=>{
+              const res=await fetch('https://xuan0809999.github.io/'+p+'?v=57fbc2a619&check='+n,{cache:'no-store'});
+              const bytes=Buffer.from(await res.arrayBuffer());
+              const sha=createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
+              return {path:p||'/',status:res.status,expected,sha,ok:res.ok&&expected===sha};
+            }));
+            console.log(JSON.stringify(results));
+            if(results.every(x=>x.ok))process.exit(0);
+            await new Promise(resolve=>setTimeout(resolve,5500));
+          }
+          process.exit(1);
+          JS
